@@ -11,8 +11,8 @@ test('desktop hooks classify only approvals and explicit question tools, redact 
     const n=notification({...base,hook_event_name:'PreToolUse',tool_name});
     assert.equal(n.kind,'question');assert.ok(!JSON.stringify(n).includes('private-'));
   }
-  assert.equal(notification({...base,hook_event_name:'PermissionRequest'}).kind,'approval');
-  assert.match(notification({...base,hook_event_name:'PermissionRequest'}).text,/可能由自動審查處理/);
+  assert.equal(notification({...base,hook_event_name:'PermissionRequest'}),undefined);
+  for(const hook_event_name of ['Stop','PostModelRequest','PostToolUse'])assert.equal(notification({...base,hook_event_name}),undefined);
   assert.equal(notification({...base,hook_event_name:'PostToolUse',tool_name:'request_user_input'}),undefined);
   assert.equal(notification({...base,hook_event_name:'PreToolUse',tool_name:'fake_request_user_input'}),undefined);
   assert.equal(notification({hook_event_name:'PermissionRequest'}),undefined);
@@ -22,7 +22,7 @@ test('dedup keys distinguish sessions, turns and tool invocations',()=>{
   assert.equal(notification(e).key,notification({...e}).key);
   for(const patch of [{session_id:'s2'},{turn_id:'t2'},{tool_use_id:'i2'}])assert.notEqual(notification(e).key,notification({...e,...patch}).key);
   const approval={session_id:'s',turn_id:'t',hook_event_name:'PermissionRequest',tool_input:{command:'echo hello'}};
-  assert.notEqual(notification(approval).key,notification(approval).key,'equal commands without invocation IDs must still notify separately');
+  assert.equal(notification(approval),undefined,'pre-review events must not notify');
 });
 test('delivery retries only transient errors and respects bounded retry-after',async()=>{
   let calls=0;const waits=[];

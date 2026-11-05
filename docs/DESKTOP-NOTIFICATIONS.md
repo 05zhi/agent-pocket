@@ -1,5 +1,7 @@
 # Codex 桌面全域通知（驗證中）
 
+最新修正：已在執行時停用 PermissionRequest 通知，避免自動審查造成連續提醒；既有安裝立即生效。只保留問題回答工具通知，一般新訊息及完成事件不通知。人工核准提醒暫不支援，需找到可靠的人工等待訊號。以下核准實測為歷史紀錄。
+
 目標：平常在桌面 App 開的聊天室需要核准／回答時，Telegram 只發提醒，原回答框與決定仍留在電腦。不是 `npm run serve` 啟動的另一個 Codex 工作。
 
 2026-11-05 原生桌面實測：使用者已信任兩個 Hooks。`request_user_input_async` 回答框 → Hook → Telegram API 接受 → iPhone 看見 → 電腦回答 → 原聊天室繼續，通過。核准事件 → Telegram → iPhone 看見亦通過，但自動審查已處理請求，使用者確認**沒有人工核准框**；人工允許／拒絕驗收仍未完成。[去識別化證據](evidence/desktop-global-notifications.json)。

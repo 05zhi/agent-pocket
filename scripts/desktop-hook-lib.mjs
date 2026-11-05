@@ -4,7 +4,9 @@ import {createHash,randomUUID} from 'node:crypto';
 export const questionMatcher = '(^|[.:/])request_user_input(_async)?$';
 export function classify(event) {
   if (!event || typeof event.session_id !== 'string' || !event.session_id) return;
-  if (event.hook_event_name === 'PermissionRequest') return 'approval';
+  // This fires before automatic review, not only when a human must approve.
+  // Suppress it until a reliable human-waiting signal is available.
+  if (event.hook_event_name === 'PermissionRequest') return;
   if (event.hook_event_name === 'PreToolUse' && new RegExp(questionMatcher).test(event.tool_name ?? '')) return 'question';
 }
 export function notification(event) {

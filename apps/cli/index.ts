@@ -12,6 +12,6 @@ if (process.argv[2] === 'simulate') {
     return [tool, result.status === 0 ? result.stdout.trim() : 'unavailable'];
   }));
   console.log(JSON.stringify({ node: process.version, platform: process.platform, versions,
-    support: 'M1: core and Codex bridge available; phone approvals are not implemented',
+    support: 'Managed service and phone command approvals/questions available; file/network approvals are not implemented',
     authentication: 'not checked', telegram: 'not configured or tested' }, null, 2));
 }

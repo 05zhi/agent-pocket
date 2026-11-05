@@ -6,6 +6,16 @@ import type {Answers} from '../core/questions.js';
 import {TelegramApi} from './api.js';
 type Entry={request:ApprovalRequest;params:any;message:number;chat:string;actor:string;state:string;interactive:boolean};
 type Choice={entry:Entry;action:Decision['action'];answers?:Answers};
+export function parseQuestionReply(questions:any[],text:string):Answers {
+ if(questions.length===1)return {[questions[0].id]:[text]};
+ if(text.trim().startsWith('{'))return JSON.parse(text);
+ const answers:Answers=Object.create(null);
+ for(const line of text.split(/\r?\n/)){
+  const match=/^(\d+)\s*[:：]\s*(.+)$/.exec(line.trim());if(!match)throw Error('Use one numbered answer per line');
+  const q=questions[Number(match[1])-1];if(!q||Object.hasOwn(answers,q.id))throw Error('Unknown or duplicate question');answers[q.id]=[match[2]];
+ }
+ return answers;
+}
 export class TelegramInbox {
  private entries:Entry[]=[];private choices=new Map<string,Choice>();private seen=new Set<number>();
  accepted=0;lastAction?:Decision['action'];
@@ -18,12 +28,12 @@ export class TelegramInbox {
   const buttons:any[]=[];
   const add=(text:string,action:Decision['action'],answers?:Answers)=>{const token=randomBytes(18).toString('base64url');this.choices.set(token,{entry,action,answers});buttons.push([{text,callback_data:token}]);};
   let text='Agent Pocket · Codex\n以下是原工具提供的內容：\n'+JSON.stringify(params,null,2);
+  if(request.kind==='input')text='Agent Pocket · Codex 問題（共 '+params.questions.length+' 題）\n'+params.questions.map((q:any,i:number)=>`${i+1}. ${JSON.stringify(q.question)}\n選項：${(q.options??[]).map((o:any)=>JSON.stringify(o.label)).join('、')||'自由文字'}`).join('\n\n');
   if(text.length>3500){entry.interactive=false;text='Agent Pocket：請求內容過長，請回電腦完整查看；此訊息不能核准或回答。';}
   else if(request.kind==='input'){
     const qs=params.questions;
     if(qs.length===1)for(const option of (qs[0].options??[]))add(option.label.slice(0,60),'answer',{[qs[0].id]:[option.label]});
-    text+='\n請點選答案；自由文字請「回覆這則訊息」。多題請回覆 JSON：{"題目id":["答案"]}。';
-    if(qs.length>1)text+='\n可複製此格式填入答案：\n'+JSON.stringify(Object.fromEntries(qs.map((q:any)=>[q.id,['請填答案']])));
+    text+=qs.length===1?'\n請點選答案；自由文字請「回覆這則訊息」。':'\n請「回覆這則訊息」，一次回答全部題目，格式如下：\n'+qs.map((q:any,i:number)=>`${i+1}: 請填答案`).join('\n');
   }else{
     const available=params.availableDecisions;
     if(!available||available.includes('accept'))add('允許一次','allow_once');
@@ -48,7 +58,7 @@ export class TelegramInbox {
       const entry=this.entries.find(e=>e.message===m.reply_to_message.message_id&&e.chat===pair.chat&&e.request.kind==='input');
       if(entry){let answers:Answers|undefined;try{
         const qs=entry.params.questions;
-        answers=qs.length===1?{[qs[0].id]:[m.text]}:JSON.parse(m.text);
+        answers=parseQuestionReply(qs,m.text);
       }catch{}if(answers)choice={entry,action:'answer',answers};}
     }
     if(choice){const e=choice.entry;

@@ -24,7 +24,7 @@ async function interrupt(){if(thread&&activeTurn)await transport.rpc('turn/inter
 async function start(text,plan=false){
  if(busy){console.log('BUSY: wait for the current turn or use /interrupt.');return;}
  if(!text.trim())return;busy=true;
- try{const turn=await transport.rpc('turn/start',{threadId:thread,input:[{type:'text',text}],...(plan?{collaborationMode:{mode:'plan',settings:{model,developer_instructions:null}}}:{})});activeTurn=turn.turn.id;}
+ try{const turn=await transport.rpc('turn/start',{threadId:thread,input:[{type:'text',text}],collaborationMode:{mode:plan?'plan':'default',settings:{model,developer_instructions:null}}});if(busy)activeTurn=turn.turn.id;}
  catch{busy=false;console.error('Turn could not be started.');}
 }
 try{

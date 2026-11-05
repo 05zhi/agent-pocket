@@ -1,5 +1,7 @@
 # Agent Pocket
 
+目前已提供一般任務的前景常駐服務：`npm run serve -- --project "C:\path\to\project"`。它能連續處理 Codex 任務，透過 Telegram 核准或回答，再回到原工作。iPhone 自由文字與兩題 JSON 回覆均已真實驗證；使用方式及限制見 [SERVICE.md](docs/SERVICE.md)。尚未安裝 Windows 開機服務，也不支援附接既有 Codex 桌面工作。
+
 最新狀態：iPhone Telegram 單次核准、問題選項回答及取消已能回到原 Codex 受管理測試工作，三條真實流程通過。仍是固定版本的合成測試執行器，尚非一般任務常駐服務；檔案／網路權限與 Android 尚未驗證。以下較早階段敘述保留開發脈絡，以本段與最新進度為準。
 
 AI 工作的手機通知與人工回覆中心，目前專注 Codex 與 Telegram；Claude 延後。

@@ -1,0 +1,12 @@
+{
+  "provider": "codex",
+  "scenario": "approval-allow",
+  "requestSeen": true,
+  "responseSent": true,
+  "resumed": true,
+  "completed": true,
+  "passed": true,
+  "decision": "accept",
+  "commandExecuted": true,
+  "outcome": "completed"
+}

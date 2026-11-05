@@ -1,10 +1,11 @@
 export type RequestState = 'pending' | 'decision_received' | 'delivering' | 'resolved' | 'expired' | 'cancelled' | 'outcome_unknown';
 export interface ApprovalRequest {
+  kind?: 'approval' | 'input';
   id: string; sessionId: string; generation: string; nativeRequestId: string;
   version: number; payloadHash: string; expiresAt: number;
 }
 export interface Decision extends ApprovalRequest {
-  actorId: string; chatId: string; action: 'allow_once' | 'deny';
+  actorId: string; chatId: string; action: 'allow_once' | 'deny' | 'answer';
 }
 export interface AdapterCapabilities {
   version: string; supportsApproval: boolean; supportsQuestions: boolean;

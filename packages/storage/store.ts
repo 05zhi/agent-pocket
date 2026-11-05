@@ -13,6 +13,7 @@ export class Store {
         native_id TEXT NOT NULL, version INTEGER NOT NULL, hash TEXT NOT NULL, expires INTEGER NOT NULL,
         state TEXT NOT NULL, action TEXT, UNIQUE(session_id,generation,native_id));
       CREATE TABLE IF NOT EXISTS outbox(request_id TEXT PRIMARY KEY REFERENCES requests(id), status TEXT NOT NULL DEFAULT 'pending');`);
+    if (!this.db.prepare('PRAGMA table_info(requests)').all().some(r => r.name === 'kind')) this.db.exec("ALTER TABLE requests ADD COLUMN kind TEXT NOT NULL DEFAULT 'approval'");
   }
   close() { this.db.close(); }
   private transaction<T>(fn: () => T): T {
@@ -35,16 +36,18 @@ export class Store {
       if (!this.db.prepare('SELECT 1 FROM sessions WHERE id=? AND generation=? AND active=1').get(r.sessionId, r.generation)) throw new Error('Inactive session');
       const existing = this.db.prepare('SELECT * FROM requests WHERE id=? OR (session_id=? AND generation=? AND native_id=?)').get(r.id, r.sessionId, r.generation, r.nativeRequestId);
       if (existing) {
-        if (existing.id === r.id && existing.hash === r.payloadHash && existing.version === r.version && existing.session_id === r.sessionId && existing.generation === r.generation && existing.native_id === r.nativeRequestId && existing.expires === r.expiresAt) return false;
+        if (existing.kind === (r.kind ?? 'approval') && existing.id === r.id && existing.hash === r.payloadHash && existing.version === r.version && existing.session_id === r.sessionId && existing.generation === r.generation && existing.native_id === r.nativeRequestId && existing.expires === r.expiresAt) return false;
         throw new Error('Request identity conflict');
       }
-      this.db.prepare("INSERT INTO requests VALUES(?,?,?,?,?,?,?,'pending',NULL)").run(r.id,r.sessionId,r.generation,r.nativeRequestId,r.version,r.payloadHash,r.expiresAt);
+      this.db.prepare("INSERT INTO requests VALUES(?,?,?,?,?,?,?,'pending',NULL,?)").run(r.id,r.sessionId,r.generation,r.nativeRequestId,r.version,r.payloadHash,r.expiresAt,r.kind ?? 'approval');
       this.db.prepare('INSERT INTO outbox(request_id) VALUES(?)').run(r.id);
       return true;
     });
   }
   decide(d: Decision, now: number): boolean {
-    if (!['allow_once','deny'].includes(d.action)) return false;
+    if (!['allow_once','deny','answer'].includes(d.action)) return false;
+    const kind = this.db.prepare('SELECT kind FROM requests WHERE id=?').get(d.id)?.kind;
+    if ((d.action === 'answer') !== (kind === 'input')) return false;
     return this.transaction(() => {
       if (!this.db.prepare('SELECT 1 FROM pairing WHERE actor=? AND chat=?').get(d.actorId,d.chatId)) return false;
       this.expire(now);

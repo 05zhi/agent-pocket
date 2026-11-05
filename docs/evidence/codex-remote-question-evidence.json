@@ -1,0 +1,17 @@
+{
+  "provider": "codex",
+  "scenario": "question",
+  "requestSeen": true,
+  "responseSent": true,
+  "resumed": true,
+  "completed": true,
+  "passed": true,
+  "telegramApiAccepted": true,
+  "duplicateRejected": true,
+  "decision": "answer",
+  "outcome": "completed",
+  "coreState": "resolved",
+  "phonePlatform": "iPhone",
+  "userConfirmedAction": true,
+  "date": "2026-11-05"
+}

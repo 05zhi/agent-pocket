@@ -1,0 +1,29 @@
+{
+  "provider": "codex",
+  "scenario": "approval",
+  "requestSeen": true,
+  "responseSent": true,
+  "resumed": false,
+  "completed": false,
+  "passed": true,
+  "telegramApiAccepted": true,
+  "availableDecisions": [
+    "accept",
+    {
+      "acceptWithExecpolicyAmendment": {
+        "execpolicy_amendment": [
+          "Write-Output",
+          "AGENT_POCKET_APPROVAL_OK"
+        ]
+      }
+    },
+    "cancel"
+  ],
+  "duplicateRejected": true,
+  "decision": "cancel",
+  "outcome": "interrupted",
+  "coreState": "resolved",
+  "phonePlatform": "iPhone",
+  "userConfirmedAction": true,
+  "date": "2026-11-05"
+}

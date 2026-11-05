@@ -1,5 +1,25 @@
 # Telegram 開發配對與通知
 
+## 手機操作（最新）
+
+先 `npm run build`。已配對後可執行：
+
+```text
+node --env-file=.env scripts/live-codex.mjs approval-allow --remote
+node --env-file=.env scripts/live-codex.mjs question --remote
+node --env-file=.env scripts/live-codex.mjs approval --remote
+```
+
+依序用於手機允許一次、選項答案及取消測試；不要同時執行。核准測試只允許固定的合成 Write-Output 命令，不能用此執行器核准一般任務。原請求提供 decline 才顯示拒絕，提供 cancel 則顯示取消此回合；不顯示永久規則修改。2026-11-05 iPhone 實測三條流程成功，當次命令提供 accept／規則修改／cancel，沒有 decline，故沒有宣稱真實手機 decline 已測。
+
+訊息顯示完整原始 JSON，沒有 Markdown 解譯；超長內容只提醒回電腦，不提供核准鍵。按鈕只含隨機短碼，伺服端驗證配對 user/chat、message ID、請求 hash、有效期及原工具狀態。點擊後先顯示收到決定，等原工具確認才顯示已交付；失效後移除按鈕，更新失敗也不接受舊操作。
+
+單題可點選選項，或對該 bot 訊息使用 Telegram「回覆」輸入文字；文字仍受原問題選項／自由文字規則驗證。多題可回覆 JSON（題目 ID 對應答案字串陣列），全部有效才送出。手機單選已實測；自由文字、多題只經自動測試，尚待真機驗收。Codex 固定版本沒有多選旗標，不宣稱原生多選已支援。
+
+interactive 訊息目前直接傳送，傳送失敗結束測試而不盲目重送核准；普通摘要通知仍使用 outbox 重試。callback 與訊息對應只留記憶體，重啟後舊請求失效；更新 offset 保存在本機。五分鐘測試期限到達就停止，不構成常駐服務。既有 webhook 不會被移除。
+
+下列為早期通知模式說明；`--telegram` 是手機通知＋本機處理，`--remote` 才是手機回答。
+
 目前提供私訊配對、測試通知及可接 outbox 的通知 channel，尚無手機核准按鈕或回答接收。
 
 1. 用官方 @BotFather 的 /newbot 建立本專案專用 bot。

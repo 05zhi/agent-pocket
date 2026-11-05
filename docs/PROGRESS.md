@@ -1,5 +1,14 @@
 # 開發進度
 
+## 最新：Telegram 手機直接回覆 Codex（2026-11-05）
+
+- iPhone 按允許一次：Codex 執行固定合成命令，輸出符合預期，原回合 completed，核心 resolved。
+- iPhone 點 POCKET_BLUE：原 Codex 問題收到答案並完成，核心 resolved。
+- iPhone 取消此回合：原回合 interrupted，核心 resolved 表示取消已交付，不代表工作正常完成。
+- 使用者回報缺少拒絕鍵後查明原請求只有 accept、永久規則修改、cancel；新增取消鍵，未捏造 decline，也不提供永久規則修改。最初拒絕測試中止，不能算成功；修正後取消測試成功。
+- 29 項自動測試通過。手機自由文字／多題與真實陌生帳號仍待驗證。所有新證據為合成資料，不包含 Telegram 身份或 token。
+- 測試程序已結束；配對保留。尚無一般任務 daemon、檔案／網路權限完整支援、Android 真機驗證。
+
 ## Codex → Telegram → iPhone 真實端到端通過（2026-11-05）
 
 完成核准等待與問題等待兩條真實流程：app-server request → CodexBridge → SQLite 原子 outbox → TelegramChannel → Telegram API 接受 → 使用者確認 iPhone 新通知 → 本機拒絕／回答 → Codex 原回合完成，核心 resolved。重複決定被阻擋；兩筆 notificationAttempts=1。

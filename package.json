@@ -15,6 +15,7 @@
     "telegram:test": "node --env-file=.env scripts/telegram.mjs test",
     "telegram:status": "node --env-file=.env scripts/telegram.mjs status",
     "telegram:unpair": "node scripts/telegram.mjs unpair",
+    "test:live:telegram": "node --env-file=.env scripts/live-codex.mjs approval --telegram",
     "probe:codex": "node scripts/probe-codex.mjs",
     "test": "node --test tests/contracts/*.test.mjs"
   },

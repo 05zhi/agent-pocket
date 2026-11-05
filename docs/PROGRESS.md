@@ -65,3 +65,6 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 
 ## M2 Telegram 配對與通知初版
 新增 Telegram API client（錯誤遮罩）、五分鐘一次性碼、private user/chat 綁定、本機 YES 確認、持久化 cursor、單程序 lock、解除配對及測試通知命令。通知 channel 已對接 M1 retry-after／重試語意，預設僅一般摘要。23 項測試通過。尚未完成 bot 配對或手機實測；目前本機 token 格式檢查未通過。沒有宣稱通知已送達手機。開發使用忽略追蹤的 .env，正式秘密儲存與常駐整合待做。
+
+## Codex → Telegram 端到端執行器
+新增 --telegram 模式，沿用配對資料庫與單程序 lock，驗證 bot 身份後恢復舊請求，真實 Codex 請求經 bridge／SQLite outbox／Telegram channel。通知 API 接受後保持 Codex 等待，需本機 FINISH 才拒絕合成命令或回答合成問題。24 項測試通過；本部分先記錄程式，實機結果另記。

@@ -1,20 +1,44 @@
 // Explicit opt-in live test. Never run from CI. Only synthetic inputs are used.
 import { spawn, spawnSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, openSync, closeSync, unlinkSync, readFileSync } from 'node:fs';
+import {createInterface as createPrompt} from 'node:readline/promises';
+import {setTimeout as delay} from 'node:timers/promises';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 import { Store } from '../dist/packages/storage/store.js';
 import { CodexBridge } from '../dist/packages/adapter-codex/bridge.js';
+import {TelegramApi,TelegramChannel} from '../dist/packages/channel-telegram/api.js';
+import {notifyOnce} from '../dist/packages/core/notifications.js';
 
 const scenario = process.argv[2];
 if (!['approval', 'approval-allow', 'question', 'cancel-approval', 'cancel-question'].includes(scenario)) throw new Error('Unknown scenario');
 const cancelling = scenario.startsWith('cancel-');
 const question = scenario.endsWith('question');
+const phone=process.argv.includes('--telegram');
+if(phone&&!['approval','question'].includes(scenario))throw Error('Telegram test supports approval (deny only) or question');
 let interruption;
 if (spawnSync('codex', ['--version'], { encoding: 'utf8' }).stdout.trim() !== 'codex-cli 0.166.0-alpha.5.1') throw new Error('Version mismatch');
 const cwd = resolve('.cache/live-codex');
 mkdirSync(cwd, { recursive: true });
+let lock,api,prompt;
+if(phone){
+  try {
+    lock=openSync('.cache/telegram.lock','wx');writeFileSync(lock,String(process.pid));
+    api=new TelegramApi(process.env.TELEGRAM_BOT_TOKEN??'');
+    const bot=await api.call('getMe');
+    const saved=JSON.parse(readFileSync('.cache/telegram-cursor.json','utf8'));
+    if(bot.id!==saved.botId)throw Error('Bot identity changed');
+  } catch {
+    if(lock!==undefined){closeSync(lock);unlinkSync('.cache/telegram.lock');}
+    console.error('Telegram preflight failed: check pairing, token and local lock.');process.exit(1);
+  }
+}
+const store = new Store(phone?'.cache/telegram.sqlite':':memory:');
+if(phone){
+  if(!store.pairing()){store.close();closeSync(lock);unlinkSync('.cache/telegram.lock');throw Error('Telegram must be paired first');}
+  store.recoverAfterRestart();prompt=createPrompt({input:process.stdin,output:process.stdout});
+}else store.pair('synthetic-user','synthetic-chat');
 const child = spawn('codex', ['app-server', '--listen', 'stdio://'], { stdio: ['pipe', 'pipe', 'pipe'] });
 child.stderr.on('data', () => {}); // Do not persist private diagnostic output.
 const pending = new Map();
@@ -22,12 +46,36 @@ let sequence = 0;
 const evidence = { provider: 'codex', scenario, requestSeen: false, responseSent: false, resumed: false, completed: false, passed: false };
 let finish;
 const done = new Promise(resolve => { finish = resolve; });
-const timeout = setTimeout(() => { finish('timeout'); child.kill(); }, 150000);
+const timeout = setTimeout(() => { finish('timeout'); child.kill(); }, phone?300000:150000);
 const send = value => child.stdin.write(JSON.stringify(value) + '\n');
-const store = new Store(':memory:');store.pair('synthetic-user','synthetic-chat');
 const bridge = new CodexBridge(store,send);
 let boundRequest;
-const boundDecision = action => ({...boundRequest,actorId:'synthetic-user',chatId:'synthetic-chat',action});
+const boundDecision = action => ({...boundRequest,actorId:store.pairing()?.actor,chatId:store.pairing()?.chat,action});
+let stopped=false;
+async function phoneRequest(request,params){
+  const channel=new TelegramChannel(api,store);
+  const startedAt=Date.now();
+  while(!stopped&&store.state(request.id)==='pending'){
+    await notifyOnce(store,channel);
+    if(stopped)return;
+    const delivery=store.notification(request.id);
+    if(delivery?.status==='sent'){
+      evidence.telegramApiAccepted=true;evidence.eventToApiAcceptedMs=Date.now()-startedAt;
+      evidence.notificationAttempts=delivery.attempts;
+      console.log('PHONE_NOTIFICATION_ACCEPTED: Codex remains waiting.');
+      const response=await prompt.question('After checking your phone, type FINISH to answer the synthetic request locally: ');
+      if(stopped)return;
+      if(response!=='FINISH'){finish('local_cancel');return;}
+      const action=question?'answer':'deny';
+      const answers=question?Object.fromEntries(params.questions.map(q=>[q.id,[q.options?.find(o=>o.label.includes('POCKET_BLUE'))?.label??'POCKET_BLUE']])):undefined;
+      evidence.responseSent=bridge.respond(boundDecision(action),answers);
+      evidence.duplicateRejected=!bridge.respond(boundDecision(action),answers);
+      return;
+    }
+    if(delivery?.status==='failed'){finish('notification_failed');return;}
+    await delay(250);
+  }
+}
 const rpc = (method, params) => new Promise((resolve, reject) => {
   const id = ++sequence;
   pending.set(id, { resolve, reject });
@@ -42,6 +90,11 @@ createInterface({ input: child.stdout }).on('line', line => {
   catch { finish('bridge_rejected_request');return; }
   if (msg.method && msg.id !== undefined) {
     const p = msg.params;
+    if(phone&&boundRequest&&msg.method===(question?'item/tool/requestUserInput':'item/commandExecution/requestApproval')){
+      evidence.requestSeen=true;
+      void phoneRequest(boundRequest,p).catch(()=>finish('phone_flow_failed'));
+      return;
+    }
     if (cancelling && msg.method === (question ? 'item/tool/requestUserInput' : 'item/commandExecution/requestApproval')) {
       evidence.requestSeen = true;
       interruption = rpc('turn/interrupt', { threadId: p.threadId, turnId: p.turnId }).then(() => { evidence.interruptAcknowledged = true; }).catch(() => { evidence.interruptAcknowledged = false; });
@@ -91,11 +144,14 @@ try {
   evidence.passed = evidence.requestSeen && evidence.responseSent && evidence.resumed && evidence.completed && (scenario !== 'approval-allow' || (evidence.decision === 'accept' && evidence.commandExecuted === true));
   if (cancelling) evidence.passed = evidence.requestSeen && evidence.interruptAcknowledged === true && evidence.outcome === 'interrupted' && !evidence.responseSent && evidence.staleReplyRejected && evidence.coreState==='cancelled';
   else evidence.passed = evidence.passed && evidence.duplicateRejected && evidence.coreState==='resolved';
+  if(phone)evidence.passed=evidence.passed&&evidence.telegramApiAccepted===true;
 } catch (error) { evidence.outcome = error.message; }
 finally {
   clearTimeout(timeout); child.kill();
+  stopped=true;prompt?.close();
   bridge.disconnect();store.close();
-  writeFileSync(`.cache/codex-core-${scenario}-evidence.json`, JSON.stringify(evidence, null, 2) + '\n');
+  if(lock!==undefined){closeSync(lock);unlinkSync('.cache/telegram.lock');}
+  writeFileSync(`.cache/codex-${phone?'telegram':'core'}-${scenario}-evidence.json`, JSON.stringify(evidence, null, 2) + '\n');
   console.log(JSON.stringify(evidence, null, 2));
   process.exitCode = evidence.passed ? 0 : 1;
 }

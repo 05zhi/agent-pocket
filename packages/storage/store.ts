@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { randomUUID } from 'node:crypto';
 import type { ApprovalRequest, Decision, RequestState } from '../core/contract.js';
 
 export class Store {
@@ -14,6 +15,10 @@ export class Store {
         state TEXT NOT NULL, action TEXT, UNIQUE(session_id,generation,native_id));
       CREATE TABLE IF NOT EXISTS outbox(request_id TEXT PRIMARY KEY REFERENCES requests(id), status TEXT NOT NULL DEFAULT 'pending');`);
     if (!this.db.prepare('PRAGMA table_info(requests)').all().some(r => r.name === 'kind')) this.db.exec("ALTER TABLE requests ADD COLUMN kind TEXT NOT NULL DEFAULT 'approval'");
+    const columns=this.db.prepare('PRAGMA table_info(outbox)').all();
+    for(const [name,definition] of [['attempts','INTEGER NOT NULL DEFAULT 0'],['next_at','INTEGER NOT NULL DEFAULT 0'],['lease','TEXT'],['lease_until','INTEGER NOT NULL DEFAULT 0']]) {
+      if(!columns.some(r=>r.name===name)) this.db.exec(`ALTER TABLE outbox ADD COLUMN ${name} ${definition}`);
+    }
   }
   close() { this.db.close(); }
   private transaction<T>(fn: () => T): T {
@@ -87,4 +92,20 @@ export class Store {
     return this.db.prepare("SELECT r.id FROM outbox o JOIN requests r ON r.id=o.request_id WHERE o.status='pending' AND r.state='pending'").all().map(row => row.id as string);
   }
   markNotified(id: string) { this.db.prepare("UPDATE outbox SET status='sent' WHERE request_id=?").run(id); }
+  claimNotification(now: number): {id:string;lease:string;attempts:number} | undefined {
+    return this.transaction(()=>{
+      this.expire(now);
+      this.db.prepare("UPDATE outbox SET status='failed' WHERE attempts>=5 AND lease_until<=?").run(now);
+      const row=this.db.prepare(`SELECT o.request_id,o.attempts FROM outbox o JOIN requests r ON r.id=o.request_id
+        WHERE r.state='pending' AND o.attempts<5 AND ((o.status='pending' AND o.next_at<=?) OR (o.status='sending' AND o.lease_until<=?)) ORDER BY o.next_at LIMIT 1`).get(now,now);
+      if(!row) return;
+      const lease=randomUUID();
+      this.db.prepare("UPDATE outbox SET status='sending', attempts=attempts+1, lease=?,lease_until=? WHERE request_id=?").run(lease,now+30000,row.request_id);
+      return {id:row.request_id as string,lease,attempts:Number(row.attempts)+1};
+    });
+  }
+  settleNotification(id:string,lease:string,result:'sent'|'retry'|'failed',nextAt:number) {
+    return this.db.prepare("UPDATE outbox SET status=?,next_at=?,lease=NULL,lease_until=0 WHERE request_id=? AND lease=? AND status='sending'").run(result==='retry'?'pending':result,nextAt,id,lease).changes===1;
+  }
+  notification(id:string) { return this.db.prepare('SELECT status,attempts,next_at FROM outbox WHERE request_id=?').get(id); }
 }

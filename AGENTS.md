@@ -1,4 +1,5 @@
 依 docs/PROJECT_PLAN.zh-TW.md 分段實作。
+目前使用者決定只做 Codex；docs/adr/0001-codex-first.md 優先於原雙工具里程碑。Claude 延後，不要求登入或執行其測試。
 每個可驗證部分完成後，執行相應檢查、更新進度、commit 並自動 push。
 不得把未測試或只通知的 adapter 宣稱為完整遠端核准支援。
 不得自動擴大 AI 權限，或把超時／未回答視為核准。

@@ -6,8 +6,6 @@
 node scripts/live-codex.mjs approval
 node scripts/live-codex.mjs approval-allow
 node scripts/live-codex.mjs question
-node scripts/live-claude.mjs approval
-node scripts/live-claude.mjs question
 ```
 
 Codex 僅固定版本可執行。approval 回拒絕；approval-allow 只接受固定 PowerShell 路徑及固定輸出命令，其他內容一律拒絕。question 回覆合成答案 POCKET_BLUE。
@@ -16,7 +14,9 @@ Codex 僅固定版本可執行。approval 回拒絕；approval-allow 只接受�
 
 2026-11-05：Codex 三項通過。Claude 問題真實呼叫因未登入失敗，不能以 fixture 替代。尚未測手機、取消競爭及崩潰恢復。
 
-Claude 登入（CMD）：
+Claude 已依使用者指示延後，以下僅保留未來恢復時的操作備註，目前不需登入。研究腳本需先重新安裝固定版本 SDK 才能執行。
+
+Claude 登入（CMD，延後）：
 
 ```cmd
 "node_modules\@anthropic-ai\claude-agent-sdk-win32-x64\claude.exe" auth login

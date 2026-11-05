@@ -1,5 +1,15 @@
 # 開發進度
 
+## 目前狀態（以此節為準）
+
+2026-11-05 使用者改為只做 Codex，Claude 延後，取消其登入需求。Codex M0 核心雙向流程驗收通過；不代表手機產品或完整 adapter 已完成。原雙工具 M0 不宣稱完成。
+
+- 已有真實拒絕、單次允許、問題回覆證據，見 docs/evidence。
+- 已移除 Claude SDK 的目前依賴，保留研究腳本供未來恢復；不再要求 Claude 帳號。
+- 已補初步方案比較與 Codex-first 範圍決策。
+- 下一部分為 Codex 的取消／中止觀測，再建立 M1 狀態機、SQLite、outbox 與模擬器；Telegram 在 M2。
+- 以下保留歷史紀錄，當時的 Claude 阻礙及雙工具下一步已被本節取代。
+
 2026-11-05：開始 M0，尚未通過 M0 驗收。
 
 - 已建立獨立 private repo：https://github.com/05zhi/agent-pocket

@@ -56,3 +56,6 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 
 ## 問題交付確認修正
 固定版本下使用同 request 的 serverRequest/resolved，再要求同 turn 的 agentMessage item/started，確認阻塞問題已解除且生成繼續。不讀模型文字推論。清除、取消或其他 turn 不算交付。20 項測試及真實 question／cancel-question 通過；question coreState 已為 resolved。此結論限本專案獨占的受管理 stdio 連線。
+
+## M2 Telegram 配對與通知初版
+新增 Telegram API client（錯誤遮罩）、五分鐘一次性碼、private user/chat 綁定、本機 YES 確認、持久化 cursor、單程序 lock、解除配對及測試通知命令。通知 channel 已對接 M1 retry-after／重試語意，預設僅一般摘要。23 項測試通過。尚未完成 bot 配對或手機實測；目前本機 token 格式檢查未通過。沒有宣稱通知已送達手機。開發使用忽略追蹤的 .env，正式秘密儲存與常駐整合待做。

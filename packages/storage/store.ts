@@ -42,6 +42,7 @@ export class Store {
     this.db.prepare('INSERT OR REPLACE INTO pairing VALUES(1,?,?)').run(actor, chat);
   }
   revokePairing() { this.db.exec('DELETE FROM pairing'); }
+  pairing(): {actor:string;chat:string}|undefined { return this.db.prepare('SELECT actor,chat FROM pairing WHERE singleton=1').get() as {actor:string;chat:string}|undefined; }
   startSession(id: string, generation: string) {
     if (!id || !generation) throw new Error('Invalid session');
     this.db.prepare('INSERT INTO sessions VALUES(?,?,1)').run(id, generation);

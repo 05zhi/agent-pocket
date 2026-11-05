@@ -11,6 +11,10 @@
     "typecheck": "tsc --noEmit",
     "doctor": "node dist/apps/cli/index.js doctor",
     "simulate": "node dist/apps/cli/index.js simulate",
+    "telegram:pair": "node --env-file=.env scripts/telegram.mjs pair",
+    "telegram:test": "node --env-file=.env scripts/telegram.mjs test",
+    "telegram:status": "node --env-file=.env scripts/telegram.mjs status",
+    "telegram:unpair": "node scripts/telegram.mjs unpair",
     "probe:codex": "node scripts/probe-codex.mjs",
     "test": "node --test tests/contracts/*.test.mjs"
   },

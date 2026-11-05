@@ -3,7 +3,7 @@ import {Store} from '../storage/store.js';
 import type {ApprovalRequest,Decision} from '../core/contract.js';
 import {validateAnswers,type Answers,type Question} from '../core/questions.js';
 type Wire = {id?:string|number;method?:string;params?:any};
-type Live = {request:ApprovalRequest;wireId:string|number;thread:string;turn:string;item:string;questions?:Question[]};
+type Live = {request:ApprovalRequest;wireId:string|number;thread:string;turn:string;item:string;questions?:Question[];answerCleared?:boolean};
 // Transport is the pinned app-server stdio connection, never a public HTTP endpoint.
 export class CodexBridge {
   readonly capabilities={version:'0.166.0-alpha.5.1',supportsApproval:true,supportsQuestions:true,supportsCancel:true,supportsReconcile:false};
@@ -37,6 +37,10 @@ export class CodexBridge {
     for(const [key,entry] of this.live) {
       if(p.threadId!==entry.thread)continue;
       if(message.method==='serverRequest/resolved' && JSON.stringify(p.requestId)===key && this.store.state(entry.request.id)==='pending')this.store.cancelRequest(entry.request.id);
+      if(message.method==='serverRequest/resolved' && JSON.stringify(p.requestId)===key && entry.questions && this.store.state(entry.request.id)==='delivering') entry.answerCleared=true;
+      // A cleared blocking request alone is ambiguous. Require subsequent generation in the SAME turn.
+      // No matching text/LLM interpretation is used. Lifecycle termination still invalidates the request.
+      if(entry.questions && entry.answerCleared && p.turnId===entry.turn && message.method==='item/started' && p.item?.type==='agentMessage' && this.store.state(entry.request.id)==='delivering') this.store.finishDelivery(entry.request.id,true);
       if(message.method==='item/completed' && p.turnId===entry.turn && p.item?.id===entry.item && this.store.state(entry.request.id)==='delivering') {
         // Completion proves the bound tool was released, not that its command succeeded.
         this.store.finishDelivery(entry.request.id,true);

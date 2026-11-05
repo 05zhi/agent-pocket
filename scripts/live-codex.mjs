@@ -90,7 +90,7 @@ try {
   if(cancelling) evidence.staleReplyRejected = !bridge.respond(boundDecision(question?'answer':'allow_once'),{});
   evidence.passed = evidence.requestSeen && evidence.responseSent && evidence.resumed && evidence.completed && (scenario !== 'approval-allow' || (evidence.decision === 'accept' && evidence.commandExecuted === true));
   if (cancelling) evidence.passed = evidence.requestSeen && evidence.interruptAcknowledged === true && evidence.outcome === 'interrupted' && !evidence.responseSent && evidence.staleReplyRejected && evidence.coreState==='cancelled';
-  else evidence.passed = evidence.passed && evidence.duplicateRejected;
+  else evidence.passed = evidence.passed && evidence.duplicateRejected && evidence.coreState==='resolved';
 } catch (error) { evidence.outcome = error.message; }
 finally {
   clearTimeout(timeout); child.kill();

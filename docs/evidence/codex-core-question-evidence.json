@@ -8,5 +8,5 @@
   "passed": true,
   "duplicateRejected": true,
   "outcome": "completed",
-  "coreState": "outcome_unknown"
+  "coreState": "resolved"
 }

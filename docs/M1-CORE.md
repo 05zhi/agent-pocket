@@ -23,3 +23,5 @@ CodexBridge 綁定 process generation、thread、turn、item 與保留型別的 
 真實 question 回覆已觀測模型收到合成答案，但這個版本的事件序列沒有提供 bridge 可使用的相同 item 完成證據；核心保守保持 outcome_unknown。serverRequest/resolved 單獨不能證明是哪一方的答案被採用，因此不用它把 delivering 標為 resolved。這是目前交付確認的限制，後續 M3 需要更完整的對帳，不能以模型文字通用判定成功。
 
 驗證包含十個 session／一百筆請求、雙 connection 競爭、重送、錯誤身份／內容、取消、過期、撤銷配對、重啟與未知結果。雙 connection 測試依序競爭同一列，尚非跨程序壓力測試。
+
+更新：上述 question 未知限制已在固定版本受管理連線解決。serverRequest/resolved 加同 turn 後續 agentMessage item/started 才確認；單獨清除事件仍不算成功。若在繼續生成前取消或斷線，保持未知。驗證不依賴模型文字，且不支援其他客戶端共用／附接同一工作。

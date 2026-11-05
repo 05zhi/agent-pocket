@@ -19,6 +19,17 @@ export class Store {
     for(const [name,definition] of [['attempts','INTEGER NOT NULL DEFAULT 0'],['next_at','INTEGER NOT NULL DEFAULT 0'],['lease','TEXT'],['lease_until','INTEGER NOT NULL DEFAULT 0']]) {
       if(!columns.some(r=>r.name===name)) this.db.exec(`ALTER TABLE outbox ADD COLUMN ${name} ${definition}`);
     }
+    this.db.exec(`CREATE TABLE IF NOT EXISTS audit_events(id INTEGER PRIMARY KEY,request_id TEXT,event TEXT NOT NULL,created_at INTEGER NOT NULL);
+      CREATE TRIGGER IF NOT EXISTS audit_request_created AFTER INSERT ON requests BEGIN
+        INSERT INTO audit_events(request_id,event,created_at) VALUES(NEW.id,'request_created',CAST(unixepoch('subsec')*1000 AS INTEGER)); END;
+      CREATE TRIGGER IF NOT EXISTS audit_request_state AFTER UPDATE OF state ON requests WHEN OLD.state!=NEW.state BEGIN
+        INSERT INTO audit_events(request_id,event,created_at) VALUES(NEW.id,'request_'||NEW.state,CAST(unixepoch('subsec')*1000 AS INTEGER)); END;
+      CREATE TRIGGER IF NOT EXISTS audit_notification AFTER UPDATE OF status ON outbox WHEN OLD.status!=NEW.status BEGIN
+        INSERT INTO audit_events(request_id,event,created_at) VALUES(NEW.request_id,'notification_'||NEW.status,CAST(unixepoch('subsec')*1000 AS INTEGER)); END;
+      CREATE TRIGGER IF NOT EXISTS audit_pair AFTER INSERT ON pairing BEGIN
+        INSERT INTO audit_events(event,created_at) VALUES('pairing_set',CAST(unixepoch('subsec')*1000 AS INTEGER)); END;
+      CREATE TRIGGER IF NOT EXISTS audit_revoke AFTER DELETE ON pairing BEGIN
+        INSERT INTO audit_events(event,created_at) VALUES('pairing_revoked',CAST(unixepoch('subsec')*1000 AS INTEGER)); END;`);
   }
   close() { this.db.close(); }
   private transaction<T>(fn: () => T): T {
@@ -95,7 +106,7 @@ export class Store {
   claimNotification(now: number): {id:string;lease:string;attempts:number} | undefined {
     return this.transaction(()=>{
       this.expire(now);
-      this.db.prepare("UPDATE outbox SET status='failed' WHERE attempts>=5 AND lease_until<=?").run(now);
+      this.db.prepare("UPDATE outbox SET status='failed' WHERE status IN ('pending','sending') AND attempts>=5 AND lease_until<=?").run(now);
       const row=this.db.prepare(`SELECT o.request_id,o.attempts FROM outbox o JOIN requests r ON r.id=o.request_id
         WHERE r.state='pending' AND o.attempts<5 AND ((o.status='pending' AND o.next_at<=?) OR (o.status='sending' AND o.lease_until<=?)) ORDER BY o.next_at LIMIT 1`).get(now,now);
       if(!row) return;
@@ -108,4 +119,6 @@ export class Store {
     return this.db.prepare("UPDATE outbox SET status=?,next_at=?,lease=NULL,lease_until=0 WHERE request_id=? AND lease=? AND status='sending'").run(result==='retry'?'pending':result,nextAt,id,lease).changes===1;
   }
   notification(id:string) { return this.db.prepare('SELECT status,attempts,next_at FROM outbox WHERE request_id=?').get(id); }
+  audit() { return this.db.prepare('SELECT request_id,event,created_at FROM audit_events ORDER BY id').all(); }
+  pruneAudit(now=Date.now()) { return this.db.prepare('DELETE FROM audit_events WHERE created_at<?').run(now-30*86400000).changes; }
 }

@@ -47,3 +47,6 @@
 
 ## M1 通知重試
 新增 outbox lease、防舊 worker 回寫、逾時、指數退避與 jitter、retry-after、永久失敗及最多 5 次嘗試。只重送通知，不重送決定。13 項測試通過。通知 API 接受不等於手機已讀，網路未知結果可能產生重複通知。
+
+## M1 稽核紀錄
+SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤銷；僅保存內部 request ID、事件與時間，無 actor、原生 request ID、命令或答案。提供 30 天清除介面。15 項測試通過，並修正第 5 次通知成功後不得變成 failed 的邊界。

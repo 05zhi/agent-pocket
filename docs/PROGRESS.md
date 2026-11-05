@@ -94,3 +94,6 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 
 ## 一般任務前景常駐服務初版
 新增 npm run serve -- --project <path>，固定版本 app-server、workspace-write sandbox、明確手機決定、連續任務／plan／status／interrupt／quit。輪詢與 outbox 持續運作，退出失效請求。未知協定中止回合，不自動核准；原始對話不保存至專案。31 項測試通過，真實多回合及手機文字驗收另記。不是 OS 開機服務。
+
+## 手機多題輸入體驗
+多題訊息附可複製 JSON 範本；缺題或格式不符不送出決定，僅對已配對帳號提示修正。終態訊息更新成功後清除記憶體中的內容與 callback 對應。32 項測試通過，含多題缺答拒收與完整回覆送出。

@@ -23,6 +23,7 @@ export class TelegramInbox {
     const qs=params.questions;
     if(qs.length===1)for(const option of (qs[0].options??[]))add(option.label.slice(0,60),'answer',{[qs[0].id]:[option.label]});
     text+='\n請點選答案；自由文字請「回覆這則訊息」。多題請回覆 JSON：{"題目id":["答案"]}。';
+    if(qs.length>1)text+='\n可複製此格式填入答案：\n'+JSON.stringify(Object.fromEntries(qs.map((q:any)=>[q.id,['請填答案']])));
   }else{
     const available=params.availableDecisions;
     if(!available||available.includes('accept'))add('允許一次','allow_once');
@@ -58,6 +59,7 @@ export class TelegramInbox {
     }
   }
   if(callback?.id)try{await this.api.call('answerCallbackQuery',{callback_query_id:callback.id,text:accepted?'已收到決定，等待 Codex 確認。':'無法套用：請求已失效、答案不符或未配對。'});}catch{}
+  if(!callback&&authorized&&m?.reply_to_message&&!accepted)try{await this.api.call('sendMessage',{chat_id:pair.chat,text:'答案未送出：請確認回覆的是仍有效的問題訊息，並完整填寫所有題目及符合選項。'});}catch{}
   await this.refresh();return accepted;
  }
  async refresh(){
@@ -67,5 +69,7 @@ export class TelegramInbox {
     const label=state==='resolved'?'Codex 已確認交付。':state==='delivering'||state==='decision_received'?'已收到決定，等待 Codex 確認。':state==='outcome_unknown'?'交付結果未知，請回電腦確認。':'請求已失效，請回電腦查看。';
     try{await this.api.call('editMessageText',{chat_id:entry.chat,message_id:entry.message,text:`Agent Pocket · ${label}`,reply_markup:{inline_keyboard:[]}});entry.state=state;}catch{}
   }
+  const terminal=new Set(this.entries.filter(e=>!['pending','delivering','decision_received'].includes(e.state)));
+  this.entries=this.entries.filter(e=>!terminal.has(e));for(const [token,choice] of this.choices)if(terminal.has(choice.entry))this.choices.delete(token);
  }
 }

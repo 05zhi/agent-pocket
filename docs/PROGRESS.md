@@ -111,3 +111,7 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 
 ## 手機多題輸入體驗
 多題訊息附可複製 JSON 範本；缺題或格式不符不送出決定，僅對已配對帳號提示修正。終態訊息更新成功後清除記憶體中的內容與 callback 對應。32 項測試通過，含多題缺答拒收與完整回覆送出。
+
+## 桌面全域通知 Hooks 第一部分
+
+新增使用者全域 hooks 安裝器、PermissionRequest 與問題工具 PreToolUse 分類、非同步通知、遮罩資料、SQLite 去重與有界重試。保留原生電腦決定；沒有手機操作或自動核准。build、typecheck 與 41 項合約測試通過。安裝器檔案替換測試改在可寫工作區隔離目錄執行（Windows sandbox 暫存目錄不允許替換）。僅完成實作與合約驗證；真實桌面 Hooks 信任、事件觸發與 iPhone 顯示尚未驗收，詳見 DESKTOP-NOTIFICATIONS.md。

@@ -15,4 +15,8 @@ npm run serve -- --project "C:\path\to\project"
 
 [服務操作](docs/SERVICE.md) · [Telegram 設定](docs/TELEGRAM.md) · [進度](docs/PROGRESS.md)
 
-驗證：35 項自動測試通過。過去手機核准／回答證據保留在 docs/evidence，僅代表歷史版本，不代表目前功能啟用。
+驗證：41 項自動測試通過。過去手機核准／回答證據保留在 docs/evidence，僅代表歷史版本，不代表目前功能啟用。
+
+## 桌面全域通知
+
+正在驗證真正 Codex 桌面聊天室的通知 Hooks，見 [安裝與驗收狀態](docs/DESKTOP-NOTIFICATIONS.md)。不接受手機回答或核准；尚未宣稱所有桌面聊天室驗收通過。

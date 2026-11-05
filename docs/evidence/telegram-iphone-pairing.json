@@ -1,0 +1,16 @@
+{
+  "date": "2026-11-05",
+  "timezone": "Asia/Taipei",
+  "privatePairing": "passed",
+  "oneTimeCodeReceived": true,
+  "localBindingConfirmedAfterUserConfirmedSendingCode": true,
+  "telegramApiAcceptedTestMessage": true,
+  "phonePlatform": "iPhone",
+  "userConfirmedMessageVisible": true,
+  "samples": 1,
+  "latencyMeasured": false,
+  "androidTested": false,
+  "liveUnauthorizedAccountTested": false,
+  "liveRevocationTested": false,
+  "codexToPhoneEndToEndTested": false
+}

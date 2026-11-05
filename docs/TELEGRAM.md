@@ -19,3 +19,5 @@
 通知 channel 將 429、5xx 與網路錯誤交由 M1 重試，尊重 retry_after；其他 API 錯誤為永久失敗。不輸出 token URL、原始 API error description 或訊息內容。任何真正的手機通知都經 Telegram 第三方。
 
 真機驗收需填寫：配對成功、錯誤帳號拒絕、手機實際收到、解除配對後停止傳送。未完成前不得宣稱 iOS／Android 已實測。Codex 常駐 session 與 Telegram 一體化 daemon 仍是下一部分。
+
+2026-11-05 實測：專用 bot 的一次性私訊配對及本機綁定成功，Telegram API 接受測試訊息，使用者確認 iPhone 已看見。僅 1 次，未量測延遲；Android、真實錯誤帳號與解除綁定情境尚未測。配對維持啟用供後續工作使用。見 docs/evidence/telegram-iphone-pairing.json。

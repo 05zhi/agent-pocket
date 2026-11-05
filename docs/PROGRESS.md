@@ -115,3 +115,7 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 ## 桌面全域通知 Hooks 第一部分
 
 新增使用者全域 hooks 安裝器、PermissionRequest 與問題工具 PreToolUse 分類、非同步通知、遮罩資料、SQLite 去重與有界重試。保留原生電腦決定；沒有手機操作或自動核准。build、typecheck 與 41 項合約測試通過。安裝器檔案替換測試改在可寫工作區隔離目錄執行（Windows sandbox 暫存目錄不允許替換）。僅完成實作與合約驗證；真實桌面 Hooks 信任、事件觸發與 iPhone 顯示尚未驗收，詳見 DESKTOP-NOTIFICATIONS.md。
+
+## 桌面全域通知安裝與診斷
+
+第一部分 commit a96e433 已推送並核對遠端雜湊。已合併安裝兩個使用者全域 Hooks，未變更信任資料或核准政策。新增不含私人資料的 desktop-status 診斷命令，確認兩組設定存在；目前無桌面事件紀錄，等待使用者在 App 內 Review hooks／Settings > Hooks 信任啟用。修正無工具呼叫 ID 的事件不能依相同內容去重，避免重複命令的合法核准漏通知；6 項 Hooks 測試重跑通過。真實桌面核准、問題、iPhone 顯示與本機回答繼續仍待驗證，不能標記端到端通過。

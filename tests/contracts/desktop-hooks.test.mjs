@@ -20,6 +20,8 @@ test('dedup keys distinguish sessions, turns and tool invocations',()=>{
   const e={session_id:'s',turn_id:'t',tool_use_id:'i',hook_event_name:'PreToolUse',tool_name:'request_user_input'};
   assert.equal(notification(e).key,notification({...e}).key);
   for(const patch of [{session_id:'s2'},{turn_id:'t2'},{tool_use_id:'i2'}])assert.notEqual(notification(e).key,notification({...e,...patch}).key);
+  const approval={session_id:'s',turn_id:'t',hook_event_name:'PermissionRequest',tool_input:{command:'echo hello'}};
+  assert.notEqual(notification(approval).key,notification(approval).key,'equal commands without invocation IDs must still notify separately');
 });
 test('delivery retries only transient errors and respects bounded retry-after',async()=>{
   let calls=0;const waits=[];

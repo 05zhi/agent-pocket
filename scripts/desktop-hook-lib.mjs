@@ -1,4 +1,4 @@
-import {createHash} from 'node:crypto';
+import {createHash,randomUUID} from 'node:crypto';
 
 // Exact function names only. Hosted/specialized tools may bypass hooks entirely.
 export const questionMatcher = '(^|[.:/])request_user_input(_async)?$';
@@ -13,7 +13,9 @@ export function notification(event) {
   const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
   const session = digest(event.session_id).slice(0, 8);
   // Do not persist prompts, commands, paths, answers, or native session IDs.
-  const key = digest([event.session_id,event.turn_id,kind,event.tool_use_id ?? event.tool_input]);
+  // PermissionRequest may lack an invocation ID. Identical commands can prompt
+  // twice legitimately; never dedup separate requests based on their contents.
+  const key = digest([event.session_id,event.turn_id,kind,event.tool_use_id || randomUUID()]);
   return {key,kind,text:`Agent Pocket：Codex 桌面聊天室需要${kind === 'approval' ? '你核准' : '你回答問題'}。\n請回電腦處理。聊天室識別：${session}`};
 }
 

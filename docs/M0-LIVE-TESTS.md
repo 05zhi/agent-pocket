@@ -23,3 +23,6 @@ Claude 登入（CMD，延後）：
 ```
 
 PowerShell 在上述命令前加 `&`。登入由使用者在本機完成，不將憑證貼入聊天。
+
+取消測試：node scripts/live-codex.mjs cancel-approval 與 cancel-question，兩者皆已通過。成功需觀測請求、interrupt 回應與 interrupted 終態。沒有把未回答當作允許，也不宣稱已驗證上游接受舊回覆的行為。
+

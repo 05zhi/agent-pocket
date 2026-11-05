@@ -35,3 +35,7 @@
 - SDK 已固定 0.3.318；Windows binary 已安裝，npm audit 0 vulnerabilities。
 - auth status 為 loggedIn=false；真實 SDK question 呼叫回報 Not logged in。登入是目前阻礙，未通過 Claude 真實流程。
 - 已準備 opt-in 腳本；成功驗收前保持 M0 未完成。
+
+## Codex 取消驗證（2026-11-05）
+真實核准等待及問題等待皆收到 turn/interrupt acknowledgement 與 turn/completed interrupted，未送出任何決定。兩項通過。未測直接送舊回覆給 Codex 的行為；產品將由核心拒收舊回覆。
+

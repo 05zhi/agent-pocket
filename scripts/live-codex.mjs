@@ -6,7 +6,10 @@ import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 
 const scenario = process.argv[2];
-if (!['approval', 'approval-allow', 'question'].includes(scenario)) throw new Error('Specify approval, approval-allow or question');
+if (!['approval', 'approval-allow', 'question', 'cancel-approval', 'cancel-question'].includes(scenario)) throw new Error('Unknown scenario');
+const cancelling = scenario.startsWith('cancel-');
+const question = scenario.endsWith('question');
+let interruption;
 if (spawnSync('codex', ['--version'], { encoding: 'utf8' }).stdout.trim() !== 'codex-cli 0.166.0-alpha.5.1') throw new Error('Version mismatch');
 const cwd = resolve('.cache/live-codex');
 mkdirSync(cwd, { recursive: true });
@@ -31,6 +34,11 @@ createInterface({ input: child.stdout }).on('line', line => {
   try { msg = JSON.parse(line); } catch { return; }
   if (msg.method && msg.id !== undefined) {
     const p = msg.params;
+    if (cancelling && msg.method === (question ? 'item/tool/requestUserInput' : 'item/commandExecution/requestApproval')) {
+      evidence.requestSeen = true;
+      interruption = rpc('turn/interrupt', { threadId: p.threadId, turnId: p.turnId }).then(() => { evidence.interruptAcknowledged = true; }).catch(() => { evidence.interruptAcknowledged = false; });
+      return;
+    }
     if (msg.method === 'item/commandExecution/requestApproval') {
       evidence.requestSeen = true;
       const shell = resolve(homedir(), '.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe');
@@ -63,13 +71,15 @@ try {
   await rpc('initialize', { clientInfo: { name: 'agent_pocket_m0', version: '0.0.1' }, capabilities: { experimentalApi: true } });
   send({ method: 'initialized' });
   const started = await rpc('thread/start', { cwd, ephemeral: true, sandbox: 'read-only', approvalPolicy: 'on-request', approvalsReviewer: 'user' });
-  const prompt = scenario !== 'question'
+  const prompt = !question
     ? "This is a protocol test. Request shell execution of exactly Write-Output 'AGENT_POCKET_APPROVAL_OK' with require_escalated and a justification asking for approval. Do not run other commands. If denied, do not retry: say REQUEST_DENIED and finish."
     : 'This is a protocol test. Call request_user_input with a single question choosing POCKET_BLUE or POCKET_GREEN. After receiving the answer, repeat the selected value and finish. Do not call other tools.';
   await rpc('turn/start', { threadId: started.thread.id, input: [{ type: 'text', text: prompt }],
-    ...(scenario === 'question' ? { collaborationMode: { mode: 'plan', settings: { model: started.model, developer_instructions: null } } } : {}) });
+    ...(question ? { collaborationMode: { mode: 'plan', settings: { model: started.model, developer_instructions: null } } } : {}) });
   evidence.outcome = await done;
+  if (interruption) await interruption;
   evidence.passed = evidence.requestSeen && evidence.responseSent && evidence.resumed && evidence.completed && (scenario !== 'approval-allow' || (evidence.decision === 'accept' && evidence.commandExecuted === true));
+  if (cancelling) evidence.passed = evidence.requestSeen && evidence.interruptAcknowledged === true && evidence.outcome === 'interrupted' && !evidence.responseSent;
 } catch (error) { evidence.outcome = error.message; }
 finally {
   clearTimeout(timeout); child.kill();

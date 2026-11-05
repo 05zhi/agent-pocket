@@ -1,0 +1,11 @@
+{
+  "provider": "codex",
+  "scenario": "cancel-question",
+  "requestSeen": true,
+  "responseSent": false,
+  "resumed": false,
+  "completed": false,
+  "passed": true,
+  "interruptAcknowledged": true,
+  "outcome": "interrupted"
+}

@@ -1,6 +1,6 @@
 # Telegram 只通知模式
 
-目前已配對，可繼續使用；不用重新提供 token。
+首次設定請依 [README](../README.md#3-建立-telegram-bot-並配對) 建立 bot 並完成配對。已有配對時可沿用本機設定。
 
 - `npm run telegram:status`：查看配對狀態。
 - `npm run telegram:test`：發送測試通知。
@@ -13,4 +13,4 @@
 
 開發 token 使用忽略追蹤的 .env，正式 OS 秘密儲存尚未實作。API 接受不等於手機已讀。通知遇到網路錯誤採有界重試，可能重複，但沒有可重複執行的手機操作。
 
-過去手機核准／回答測試紀錄僅供歷史參考，不代表目前啟用。原生 Codex 桌面 App 工作通知尚未接入。
+原生 Codex 桌面 App 的問題框通知請參考 [桌面通知設定](DESKTOP-NOTIFICATIONS.md)。過去手機核准與回答測試紀錄僅供歷史參考。

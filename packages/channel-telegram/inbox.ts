@@ -10,7 +10,7 @@ export class TelegramInbox {
  private entries:Entry[]=[];private choices=new Map<string,Choice>();private seen=new Set<number>();
  accepted=0;lastAction?:Decision['action'];
  constructor(private api:TelegramApi,private store:Store,private bridge:CodexBridge,private now=Date.now,private onAccepted:(action:Decision['action'],answers?:Answers)=>void=()=>{}){}
- async present(request:ApprovalRequest,params:any){
+ async present(request:ApprovalRequest,params:any,signal?:AbortSignal){
   const method=request.kind==='input'?'item/tool/requestUserInput':'item/commandExecution/requestApproval';
   if(createHash('sha256').update(JSON.stringify({method,params})).digest('hex')!==request.payloadHash)throw Error('Display content does not match original request');
   const pair=this.store.pairing();if(!pair||this.store.state(request.id)!=='pending')throw Error('Request unavailable');
@@ -29,7 +29,7 @@ export class TelegramInbox {
     if(!available||available.includes('decline'))add('拒絕','deny');
     if(!available||available.includes('cancel'))add('取消此回合','cancel');
   }
-  const result=await this.api.call('sendMessage',{chat_id:pair.chat,text,protect_content:true,reply_markup:{inline_keyboard:buttons}});
+  const result=await this.api.call('sendMessage',{chat_id:pair.chat,text,protect_content:true,reply_markup:{inline_keyboard:buttons}},signal);
   if(!Number.isSafeInteger(result.message_id))throw Error('Missing Telegram message id');
   entry.message=result.message_id;this.entries.push(entry);
  }

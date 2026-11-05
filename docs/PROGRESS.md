@@ -91,3 +91,6 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 
 ## 手機取消選項修正
 使用者回報只有允許按鈕；依 availableDecisions 新增取消此回合，bridge 拒收未提供的 decline。取消以 interrupted 確認。修正同回合多請求失效順序與解除配對後再配對不能復活舊按鈕；重複測試移到測試執行器。29 項測試通過。
+
+## 一般任務前景常駐服務初版
+新增 npm run serve -- --project <path>，固定版本 app-server、workspace-write sandbox、明確手機決定、連續任務／plan／status／interrupt／quit。輪詢與 outbox 持續運作，退出失效請求。未知協定中止回合，不自動核准；原始對話不保存至專案。31 項測試通過，真實多回合及手機文字驗收另記。不是 OS 開機服務。

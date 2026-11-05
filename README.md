@@ -4,7 +4,7 @@
 
 ## 1. 下載
 
-[下載 Agent Pocket 原始碼 ZIP](https://github.com/05zhi/agent-pocket/archive/refs/heads/main.zip)（需登入有此私人儲存庫存取權的 GitHub 帳號）。解壓縮到固定資料夾，開啟 PowerShell 並進入含 `package.json` 的資料夾。
+[下載 Agent Pocket 原始碼 ZIP](https://github.com/05zhi/agent-pocket/archive/refs/heads/main.zip)。解壓縮到固定資料夾，開啟 PowerShell 並進入含 `package.json` 的資料夾。
 
 也可以用 Git 下載，方便日後更新。
 

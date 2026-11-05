@@ -1,0 +1,30 @@
+{
+  "date": "2026-11-05",
+  "source": "native Codex desktop chat, not a managed app-server test session",
+  "notificationOnly": true,
+  "userGlobalHooksInstalled": true,
+  "userConfirmedHooksEnabled": true,
+  "question": {
+    "tool": "request_user_input_async",
+    "nativeAnswerBox": true,
+    "hookLedgerApiAccepted": true,
+    "iphoneVisibilityConfirmedByUser": true,
+    "answeredOnComputer": true,
+    "originalChatContinued": true
+  },
+  "approval": {
+    "permissionRequestHookObserved": true,
+    "hookLedgerApiAccepted": true,
+    "iphoneVisibilityConfirmedByUser": true,
+    "syntheticCommandCompleted": true,
+    "manualApprovalBoxObserved": false,
+    "manualAllowOrDenyVerified": false,
+    "limitation": "PermissionRequest notification can precede automatic approval review; notification does not imply a human decision is pending."
+  },
+  "limits": [
+    "Verified one native desktop chat, not every chat or question tool path.",
+    "User-global configuration applies on this host; other hosts and cloud chats are not covered.",
+    "No permission policy was changed to force a manual approval prompt.",
+    "Global hooks may also run in CLI sessions using the same Codex home."
+  ]
+}

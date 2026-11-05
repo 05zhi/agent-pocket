@@ -16,7 +16,10 @@ export function notification(event) {
   // PermissionRequest may lack an invocation ID. Identical commands can prompt
   // twice legitimately; never dedup separate requests based on their contents.
   const key = digest([event.session_id,event.turn_id,kind,event.tool_use_id || randomUUID()]);
-  return {key,kind,text:`Agent Pocket：Codex 桌面聊天室需要${kind === 'approval' ? '你核准' : '你回答問題'}。\n請回電腦處理。聊天室識別：${session}`};
+  const text=kind==='approval'
+    ? `Agent Pocket：Codex 發出核准請求。\n若電腦顯示核准框，請回電腦處理；此請求也可能由自動審查處理。聊天室識別：${session}`
+    : `Agent Pocket：Codex 桌面聊天室需要你回答問題。\n請回電腦處理。聊天室識別：${session}`;
+  return {key,kind,text};
 }
 
 export async function deliver(send, {sleep = ms => new Promise(r => setTimeout(r,ms)), attempts = 3} = {}) {

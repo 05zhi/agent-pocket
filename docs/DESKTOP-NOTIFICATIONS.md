@@ -2,6 +2,8 @@
 
 目標：平常在桌面 App 開的聊天室需要核准／回答時，Telegram 只發提醒，原回答框與決定仍留在電腦。不是 `npm run serve` 啟動的另一個 Codex 工作。
 
+2026-11-05 原生桌面實測：使用者已信任兩個 Hooks。`request_user_input_async` 回答框 → Hook → Telegram API 接受 → iPhone 看見 → 電腦回答 → 原聊天室繼續，通過。核准事件 → Telegram → iPhone 看見亦通過，但自動審查已處理請求，使用者確認**沒有人工核准框**；人工允許／拒絕驗收仍未完成。[去識別化證據](evidence/desktop-global-notifications.json)。
+
 ## 安裝
 
 先完成既有 Telegram 配對，保留本機 `.env` 與 `.cache/telegram.sqlite`，然後：
@@ -30,6 +32,8 @@ node scripts/install-desktop-hooks.mjs --install
 ## 限制與驗收
 
 API 接受不代表 iPhone 已顯示。網路結果不明時重試可能重複通知；程序中止／離線／長時間限流可能漏通知，不提供持久化背景重送。`sending` 記錄代表結果不明，不能當作送達。
+
+實測發現 `PermissionRequest` 可在自動審查前觸發，故通知**不等於目前正在等待人工核准**。訊息已改為「發出核准請求，可能由自動審查處理」。此接點目前無法精準排除被自動審查處理的請求；不為此修改使用者原本的權限政策。相同 Codex home 的 CLI 也可能載入全域 Hooks，並非只限桌面 App。
 
 官方指出特殊工具路徑可略過 Hooks，故不能從合約測試推論所有回答框都涵蓋。一般文字問句也不等於呼叫回答工具。主機須開機且連網；在其他主機或雲端執行的聊天室不會使用此電腦的 hook。
 

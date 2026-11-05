@@ -5,7 +5,7 @@
 - 手機收到「Codex 工作需要你處理」，不含操作按鈕，也不接收答案。
 - Agent Pocket 受管理工作的完整請求顯示於電腦終端，由本機回答。
 - 保留既有 Telegram 配對，停用 `--remote`。
-- 尚未接入 Codex 桌面 App 原生工作，也不會在該 App 額外跳出原生回答框。
+- 以下 `serve` 是獨立受管理工作；原生桌面聊天室通知另使用下方全域 Hooks。
 
 ```powershell
 npm ci
@@ -19,4 +19,4 @@ npm run serve -- --project "C:\path\to\project"
 
 ## 桌面全域通知
 
-正在驗證真正 Codex 桌面聊天室的通知 Hooks，見 [安裝與驗收狀態](docs/DESKTOP-NOTIFICATIONS.md)。不接受手機回答或核准；尚未宣稱所有桌面聊天室驗收通過。
+全域 Hooks 已安裝，真正桌面聊天室的問題與核准事件通知均已獲 iPhone 確認。問題由電腦回答後原工作繼續；核准測試由自動審查處理，未出現人工核准框，因此人工允許／拒絕尚未驗收。核准通知可能包含已自動處理的請求。見 [安裝與驗收狀態](docs/DESKTOP-NOTIFICATIONS.md)。不接受手機回答或核准，未宣稱所有聊天室／工具路徑全覆蓋。

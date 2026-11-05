@@ -119,3 +119,7 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 ## 桌面全域通知安裝與診斷
 
 第一部分 commit a96e433 已推送並核對遠端雜湊。已合併安裝兩個使用者全域 Hooks，未變更信任資料或核准政策。新增不含私人資料的 desktop-status 診斷命令，確認兩組設定存在；目前無桌面事件紀錄，等待使用者在 App 內 Review hooks／Settings > Hooks 信任啟用。修正無工具呼叫 ID 的事件不能依相同內容去重，避免重複命令的合法核准漏通知；6 項 Hooks 測試重跑通過。真實桌面核准、問題、iPhone 顯示與本機回答繼續仍待驗證，不能標記端到端通過。
+
+## 真正桌面聊天室通知驗證
+
+使用者已啟用 Hooks。原生 request_user_input_async 回答框觸發問題通知，ledger 記錄 API 接受、使用者確認 iPhone 收到，從電腦回答後原聊天室繼續。PermissionRequest 也觸發通知且使用者確認 iPhone 收到；但系統自動審查已處理，使用者確認沒有人工核准框，因此不宣稱人工允許／拒絕驗證通過。通知文字修正為核准請求可能由自動審查處理，保留原政策。41 項合約測試通過。去識別化實測摘要見 evidence/desktop-global-notifications.json；不宣稱所有聊天室／所有問題工具路徑皆覆蓋。

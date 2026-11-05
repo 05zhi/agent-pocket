@@ -12,6 +12,7 @@ test('desktop hooks classify only approvals and explicit question tools, redact 
     assert.equal(n.kind,'question');assert.ok(!JSON.stringify(n).includes('private-'));
   }
   assert.equal(notification({...base,hook_event_name:'PermissionRequest'}).kind,'approval');
+  assert.match(notification({...base,hook_event_name:'PermissionRequest'}).text,/可能由自動審查處理/);
   assert.equal(notification({...base,hook_event_name:'PostToolUse',tool_name:'request_user_input'}),undefined);
   assert.equal(notification({...base,hook_event_name:'PreToolUse',tool_name:'fake_request_user_input'}),undefined);
   assert.equal(notification({hook_event_name:'PermissionRequest'}),undefined);

@@ -17,6 +17,7 @@ if (!['approval', 'approval-allow', 'question', 'cancel-approval', 'cancel-quest
 const cancelling = scenario.startsWith('cancel-');
 const question = scenario.endsWith('question');
 const remote=process.argv.includes('--remote');
+if(remote){console.error('Mobile replies are disabled. Use --telegram for notifications with local responses.');process.exit(1);}
 const phone=process.argv.includes('--telegram')||remote;
 if(phone&&!['approval','approval-allow','question'].includes(scenario))throw Error('Unsupported Telegram scenario');
 let interruption;

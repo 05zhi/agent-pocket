@@ -1,4 +1,4 @@
-import {mkdirSync,openSync,closeSync,unlinkSync,readFileSync,writeFileSync,renameSync,realpathSync} from 'node:fs';
+import {mkdirSync,openSync,closeSync,unlinkSync,readFileSync,writeFileSync,realpathSync} from 'node:fs';
 import {resolve} from 'node:path';
 import {spawnSync} from 'node:child_process';
 import {createInterface} from 'node:readline';
@@ -6,8 +6,8 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {CodexStdio} from '../dist/packages/adapter-codex/stdio.js';
 import {CodexBridge} from '../dist/packages/adapter-codex/bridge.js';
 import {Store} from '../dist/packages/storage/store.js';
-import {TelegramApi,TelegramError} from '../dist/packages/channel-telegram/api.js';
-import {TelegramInbox} from '../dist/packages/channel-telegram/inbox.js';
+import {TelegramApi,TelegramChannel} from '../dist/packages/channel-telegram/api.js';
+import {replyLocally} from '../dist/packages/core/local-reply.js';
 import {notifyOnce} from '../dist/packages/core/notifications.js';
 // Foreground managed service. It stays alive between tasks; no automatic OS startup.
 const args=process.argv.slice(2);const index=args.indexOf('--project');
@@ -15,7 +15,7 @@ if(index<0||!args[index+1])throw Error('Usage: serve.mjs --project <directory> [
 const project=realpathSync(resolve(args[index+1]));
 if(spawnSync('codex',['--version'],{encoding:'utf8'}).stdout.trim()!=='codex-cli 0.166.0-alpha.5.1')throw Error('Unsupported Codex version');
 mkdirSync('.cache',{recursive:true});
-let lock,store,transport,bridge,inbox,lines,thread,model,activeTurn;let busy=false,stopping=false;
+let lock,store,transport,bridge,lines,thread,model,activeTurn;let busy=false,stopping=false;
 const abort=new AbortController();const payloads=new Map();const jobs=[];
 const evidence={turns:0,completed:0,interrupted:0,requests:0,answers:0,maxQuestionCount:0,freeTextOffered:false};
 let resolveStop;const stopped=new Promise(r=>resolveStop=r);
@@ -34,12 +34,11 @@ try{
  if(cursor.botId!==me.id||(await api.call('getWebhookInfo')).url)throw Error('Bot identity or polling configuration mismatch');
  store=new Store('.cache/telegram.sqlite');if(!store.pairing())throw Error('Pair Telegram first');store.recoverAfterRestart();store.pruneAudit();
  transport=new CodexStdio();bridge=new CodexBridge(store,m=>transport.send(m));
- inbox=new TelegramInbox(api,store,bridge,Date.now,()=>{evidence.answers++;console.log('PHONE_DECISION_RECEIVED');});
  transport.on('disconnect',()=>{bridge.disconnect();stop();});
  transport.on('message',m=>{
   try{
    const request=bridge.receive(m);
-   if(request){payloads.set(request.id,{request,params:structuredClone(m.params)});evidence.requests++;if(m.params.questions){evidence.maxQuestionCount=Math.max(evidence.maxQuestionCount,m.params.questions.length);evidence.freeTextOffered ||= m.params.questions.some(q=>q.isOther||!q.options?.length);}console.log('WAITING_FOR_PHONE');}
+   if(request){payloads.set(request.id,{request,params:structuredClone(m.params)});evidence.requests++;if(m.params.questions){evidence.maxQuestionCount=Math.max(evidence.maxQuestionCount,m.params.questions.length);evidence.freeTextOffered ||= m.params.questions.some(q=>q.isOther||!q.options?.length);}console.log('\nLOCAL_REQUEST '+request.id+'\n'+JSON.stringify(m.params,null,2));console.log(`/reply ${request.id} ${request.kind==='input'?'<answer or multi-question JSON>':'<allow | deny | cancel, subject to offered choices>'}`);}
    else if(m.method&&m.id!==undefined){transport.send({id:m.id,error:{code:-32601,message:'Unsupported request; return to local tool'}});console.error('Unsupported request: turn will be interrupted.');void interrupt();}
    if(m.method==='turn/started')activeTurn=m.params.turn.id;
    if(m.method==='item/agentMessage/delta')process.stdout.write(m.params.delta);
@@ -52,23 +51,16 @@ try{
  });
  await transport.rpc('initialize',{clientInfo:{name:'agent_pocket_service',version:'0.0.1'},capabilities:{experimentalApi:true}});transport.send({method:'initialized'});
  const started=await transport.rpc('thread/start',{cwd:project,ephemeral:true,sandbox:'workspace-write',approvalPolicy:'on-request',approvalsReviewer:'user'});thread=started.thread.id;model=started.model;
- const channel={send:async(id,signal)=>{
-  const data=payloads.get(id);if(!data)return {status:'failed'};
-  try{await inbox.present(data.request,data.params,signal);return {status:'sent'};}catch(e){return e instanceof TelegramError&&(e.code===0||e.code===429||e.code>=500)?{status:'retry',retryAfterMs:e.retryAfterMs}:{status:'failed'};}
- }};
- jobs.push((async()=>{while(!stopping){await notifyOnce(store,channel);await inbox.refresh();await delay(250);}})().catch(()=>stop()));
- jobs.push((async()=>{while(!stopping){try{
-  const updates=await api.call('getUpdates',{offset:cursor.offset,timeout:10,allowed_updates:['message','callback_query']},abort.signal);
-  for(const u of updates){if(stopping)break;if(!Number.isSafeInteger(u.update_id)||u.update_id<cursor.offset)continue;await inbox.handle(u);cursor.offset=u.update_id+1;writeFileSync(cursorFile+'.tmp',JSON.stringify(cursor));renameSync(cursorFile+'.tmp',cursorFile);}
- }catch{if(!stopping)await delay(1000);}}})());
- lines=createInterface({input:process.stdin});lines.on('line',line=>{if(line==='/quit')stop();else if(line==='/interrupt')void interrupt();else if(line==='/status')console.log(JSON.stringify({busy,...evidence}));else void start(line.startsWith('/plan ')?line.slice(6):line,line.startsWith('/plan '));});
+ const channel=new TelegramChannel(api,store);
+ jobs.push((async()=>{while(!stopping){await notifyOnce(store,channel);await delay(250);}})().catch(()=>stop()));
+ lines=createInterface({input:process.stdin});lines.on('line',line=>{if(line==='/quit')stop();else if(line==='/interrupt')void interrupt();else if(line==='/status')console.log(JSON.stringify({mode:'notification-only',busy,...evidence}));else if(line.startsWith('/reply ')){const accepted=replyLocally(line,payloads,store,bridge);if(accepted)evidence.answers++;console.log(accepted?'LOCAL_DECISION_RECEIVED':'Reply rejected: check request, answer and available choices.');}else void start(line.startsWith('/plan ')?line.slice(6):line,line.startsWith('/plan '));});
  lines.on('close',()=>stop());process.once('SIGINT',stop);process.once('SIGTERM',stop);
- console.log('SERVICE_READY: type a task, /plan <task>, /status, /interrupt or /quit.');
+ console.log('SERVICE_READY (notification-only): task, /plan <task>, /reply <id> <answer>, /status, /interrupt, /quit.');
  const pi=args.indexOf('--prompt-file');if(pi>=0&&args[pi+1])await start(readFileSync(args[pi+1],'utf8'),args.includes('--plan'));
  await stopped;
 }catch{console.error('Service startup/runtime failed. Check pairing, token, version and local lock.');process.exitCode=1;}
 finally{
- stop();await interrupt();transport?.stop();await Promise.allSettled(jobs);bridge?.disconnect();if(inbox)await inbox.refresh();lines?.close();
+ stop();await interrupt();transport?.stop();await Promise.allSettled(jobs);bridge?.disconnect();lines?.close();
  if(store){writeFileSync('.cache/service-evidence.json',JSON.stringify(evidence,null,2));store.close();}
  if(lock!==undefined){closeSync(lock);unlinkSync('.cache/telegram.lock');}
 }

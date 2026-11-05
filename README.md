@@ -1,39 +1,18 @@
 # Agent Pocket
 
-目前已提供一般任務的前景常駐服務：`npm run serve -- --project "C:\path\to\project"`。它能連續處理 Codex 任務，透過 Telegram 核准或回答，再回到原工作。iPhone 自由文字與兩題 JSON 回覆均已真實驗證；使用方式及限制見 [SERVICE.md](docs/SERVICE.md)。尚未安裝 Windows 開機服務，也不支援附接既有 Codex 桌面工作。
+目前模式：**Telegram 只通知，回到電腦處理**。
 
-最新狀態：iPhone Telegram 單次核准、問題選項回答及取消已能回到原 Codex 受管理測試工作，三條真實流程通過。仍是固定版本的合成測試執行器，尚非一般任務常駐服務；檔案／網路權限與 Android 尚未驗證。以下較早階段敘述保留開發脈絡，以本段與最新進度為準。
-
-AI 工作的手機通知與人工回覆中心，目前專注 Codex 與 Telegram；Claude 延後。
-
-目前已通過 **Codex M0 核心雙向流程驗證**：真實拒絕、單次允許與問題回覆。尚不能傳送通知或從手機核准，產品 adapter 尚未完成。
-
-## 開發
-
-使用 Node.js 24.18.1、npm 11.16.0。
+- 手機收到「Codex 工作需要你處理」，不含操作按鈕，也不接收答案。
+- Agent Pocket 受管理工作的完整請求顯示於電腦終端，由本機回答。
+- 保留既有 Telegram 配對，停用 `--remote`。
+- 尚未接入 Codex 桌面 App 原生工作，也不會在該 App 額外跳出原生回答框。
 
 ```powershell
 npm ci
-npm run typecheck
 npm run build
-npm test
-npm run doctor
-npm run simulate
-npm run probe:codex
+npm run serve -- --project "C:\path\to\project"
 ```
 
-probe 固定本機 Codex 0.166.0-alpha.5.1；只產生協定，不呼叫模型。其他版本會明確失敗。
+[服務操作](docs/SERVICE.md) · [Telegram 設定](docs/TELEGRAM.md) · [進度](docs/PROGRESS.md)
 
-計畫：[docs/PROJECT_PLAN.zh-TW.md](docs/PROJECT_PLAN.zh-TW.md)
-進度：[docs/PROGRESS.md](docs/PROGRESS.md)
-相容性：[docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
-
-驗證方式與證據：[M0 真實測試](docs/M0-LIVE-TESTS.md)。目前範圍：[範圍決策](docs/adr/0001-codex-first.md)。
-
-尚未完成：核心與 Codex adapter 串接、Telegram 配對、通知重試、Windows 安裝與手機實測。Claude 不再是目前里程碑的阻礙。
-
-M1 已有 SQLite 原子入列、身份與請求綁定、一次性決定、問題驗證、取消／過期、重啟失效、通知重試與稽核。Codex bridge 將命令核准及阻塞問題接入核心；產品 daemon、手機通道與其他核准類型仍待後續里程碑。`npm run simulate` 展示合成流程，不啟動模型或發送通知。詳見 [M1 核心](docs/M1-CORE.md)。
-
-M2 已加入 Telegram 一次性配對碼、本機確認、測試通知與 outbox channel，使用方式見 [Telegram 設定](docs/TELEGRAM.md)。真實配對成功，使用者已確認 iPhone 看見測試通知；Android、Codex 到手機端到端流程與手機核准／回答仍未驗證或實作。
-
-2026-11-05：Codex 真實核准及問題等待 → SQLite outbox → Telegram → iPhone 皆已驗證，使用者確認兩筆通知可見；本機拒絕／回答後原回合完成，核心 resolved。可用 `npm run test:live:telegram` 重跑核准通知測試。這仍是手機通知、本機處理，沒有手機核准／回答按鈕，也不是通用常駐 daemon。
+驗證：35 項自動測試通過。過去手機核准／回答證據保留在 docs/evidence，僅代表歷史版本，不代表目前功能啟用。

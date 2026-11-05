@@ -50,3 +50,6 @@
 
 ## M1 稽核紀錄
 SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤銷；僅保存內部 request ID、事件與時間，無 actor、原生 request ID、命令或答案。提供 30 天清除介面。15 項測試通過，並修正第 5 次通知成功後不得變成 failed 的邊界。
+
+## M1 Codex bridge 串接
+命令核准與阻塞問題已經過 SQLite 核心路由，保留 wire ID 型別、thread／turn／item／generation；重複、上游取消、競爭處理及斷線會失效舊請求。5 項真實流程重新驗證，19 項合約測試通過。核准核心為 resolved；問題模型收到答案但核心無足夠 item 證據，保守 outcome_unknown。該限制已記錄，並不宣稱完整 M3 adapter 或手機支援。M1 要求的問題驗證、可注入通知重試、狀態稽核與初步 Codex 串接已實作；產品 daemon／Telegram 與更完整交付對帳屬後續工作。

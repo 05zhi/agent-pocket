@@ -2,6 +2,8 @@
 
 測試會使用已登入帳號的模型配額，不在 CI 自動執行。只傳送合成 prompt；工作目錄在忽略追蹤的 .cache。不要用此腳本處理正式工作。
 
+M1 起需先 `npm run build`，真實測試透過 CodexBridge 與 SQLite 核心。新摘要檔名前綴為 codex-core，保留 M0 原始證據。question 的模型回覆驗證成功與核心交付確認分開記錄；coreState=outcome_unknown 不可當成已確認交付。
+
 ```text
 node scripts/live-codex.mjs approval
 node scripts/live-codex.mjs approval-allow

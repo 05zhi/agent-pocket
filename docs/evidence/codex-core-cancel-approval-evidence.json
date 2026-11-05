@@ -1,0 +1,13 @@
+{
+  "provider": "codex",
+  "scenario": "cancel-approval",
+  "requestSeen": true,
+  "responseSent": false,
+  "resumed": false,
+  "completed": false,
+  "passed": true,
+  "interruptAcknowledged": true,
+  "outcome": "interrupted",
+  "coreState": "cancelled",
+  "staleReplyRejected": true
+}

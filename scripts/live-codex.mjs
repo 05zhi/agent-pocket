@@ -4,6 +4,8 @@ import { createInterface } from 'node:readline';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { Store } from '../dist/packages/storage/store.js';
+import { CodexBridge } from '../dist/packages/adapter-codex/bridge.js';
 
 const scenario = process.argv[2];
 if (!['approval', 'approval-allow', 'question', 'cancel-approval', 'cancel-question'].includes(scenario)) throw new Error('Unknown scenario');
@@ -22,6 +24,10 @@ let finish;
 const done = new Promise(resolve => { finish = resolve; });
 const timeout = setTimeout(() => { finish('timeout'); child.kill(); }, 150000);
 const send = value => child.stdin.write(JSON.stringify(value) + '\n');
+const store = new Store(':memory:');store.pair('synthetic-user','synthetic-chat');
+const bridge = new CodexBridge(store,send);
+let boundRequest;
+const boundDecision = action => ({...boundRequest,actorId:'synthetic-user',chatId:'synthetic-chat',action});
 const rpc = (method, params) => new Promise((resolve, reject) => {
   const id = ++sequence;
   pending.set(id, { resolve, reject });
@@ -32,6 +38,8 @@ child.on('exit', () => { for (const p of pending.values()) p.reject(new Error('s
 createInterface({ input: child.stdout }).on('line', line => {
   let msg;
   try { msg = JSON.parse(line); } catch { return; }
+  try { const request=bridge.receive(msg);if(request)boundRequest=request; }
+  catch { finish('bridge_rejected_request');return; }
   if (msg.method && msg.id !== undefined) {
     const p = msg.params;
     if (cancelling && msg.method === (question ? 'item/tool/requestUserInput' : 'item/commandExecution/requestApproval')) {
@@ -44,14 +52,14 @@ createInterface({ input: child.stdout }).on('line', line => {
       const shell = resolve(homedir(), '.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe');
       const expected = `"${shell}" -Command "Write-Output 'AGENT_POCKET_APPROVAL_OK'"`;
       const allow = scenario === 'approval-allow' && (p.command ?? '').replaceAll('\\\\', '\\') === expected;
-      send({ id: msg.id, result: { decision: allow ? 'accept' : 'decline' } });
-      evidence.responseSent = true;
+      evidence.responseSent = bridge.respond(boundDecision(allow?'allow_once':'deny'));
+      evidence.duplicateRejected = !bridge.respond(boundDecision(allow?'allow_once':'deny'));
       evidence.decision = allow ? 'accept' : 'decline';
     } else if (msg.method === 'item/tool/requestUserInput' && scenario === 'question') {
       evidence.requestSeen = true;
-      const answers = Object.fromEntries(p.questions.map(q => [q.id, { answers: ['POCKET_BLUE'] }]));
-      send({ id: msg.id, result: { answers } });
-      evidence.responseSent = true;
+      const answers = Object.fromEntries(p.questions.map(q => [q.id, [q.options?.find(o=>o.label.includes('POCKET_BLUE'))?.label ?? 'POCKET_BLUE']]));
+      evidence.responseSent = bridge.respond(boundDecision('answer'),answers);
+      evidence.duplicateRejected = !bridge.respond(boundDecision('answer'),answers);
     } else {
       send({ id: msg.id, error: { code: -32601, message: 'Unsupported by isolated M0 probe' } });
     }
@@ -78,12 +86,16 @@ try {
     ...(question ? { collaborationMode: { mode: 'plan', settings: { model: started.model, developer_instructions: null } } } : {}) });
   evidence.outcome = await done;
   if (interruption) await interruption;
+  evidence.coreState = boundRequest ? store.state(boundRequest.id) : 'no_request';
+  if(cancelling) evidence.staleReplyRejected = !bridge.respond(boundDecision(question?'answer':'allow_once'),{});
   evidence.passed = evidence.requestSeen && evidence.responseSent && evidence.resumed && evidence.completed && (scenario !== 'approval-allow' || (evidence.decision === 'accept' && evidence.commandExecuted === true));
-  if (cancelling) evidence.passed = evidence.requestSeen && evidence.interruptAcknowledged === true && evidence.outcome === 'interrupted' && !evidence.responseSent;
+  if (cancelling) evidence.passed = evidence.requestSeen && evidence.interruptAcknowledged === true && evidence.outcome === 'interrupted' && !evidence.responseSent && evidence.staleReplyRejected && evidence.coreState==='cancelled';
+  else evidence.passed = evidence.passed && evidence.duplicateRejected;
 } catch (error) { evidence.outcome = error.message; }
 finally {
   clearTimeout(timeout); child.kill();
-  writeFileSync(`.cache/codex-${scenario}-evidence.json`, JSON.stringify(evidence, null, 2) + '\n');
+  bridge.disconnect();store.close();
+  writeFileSync(`.cache/codex-core-${scenario}-evidence.json`, JSON.stringify(evidence, null, 2) + '\n');
   console.log(JSON.stringify(evidence, null, 2));
   process.exitCode = evidence.passed ? 0 : 1;
 }

@@ -28,4 +28,4 @@ probe 固定本機 Codex 0.166.0-alpha.5.1；只產生協定，不呼叫模型�
 
 尚未完成：核心與 Codex adapter 串接、Telegram 配對、通知重試、Windows 安裝與手機實測。Claude 不再是目前里程碑的阻礙。
 
-M1 已有首個核准核心：SQLite 原子入列、身份與請求綁定、一次性決定、取消／過期、重啟失效及未知結果處理。`npm run simulate` 展示合成流程，不啟動模型或發送通知。完整產品串接、問題回答與 outbox 重試仍未完成。
+M1 已有 SQLite 原子入列、身份與請求綁定、一次性決定、問題驗證、取消／過期、重啟失效、通知重試與稽核。Codex bridge 將命令核准及阻塞問題接入核心；產品 daemon、手機通道與其他核准類型仍待後續里程碑。`npm run simulate` 展示合成流程，不啟動模型或發送通知。詳見 [M1 核心](docs/M1-CORE.md)。

@@ -80,6 +80,7 @@ export class Store {
       this.db.prepare("UPDATE requests SET state=CASE WHEN state='delivering' THEN 'outcome_unknown' ELSE 'cancelled' END WHERE session_id=? AND state IN ('pending','decision_received','delivering')").run(id);
     });
   }
+  cancelRequest(id:string) { this.db.prepare("UPDATE requests SET state=CASE WHEN state='delivering' THEN 'outcome_unknown' ELSE 'cancelled' END WHERE id=? AND state IN ('pending','decision_received','delivering')").run(id); }
   beginDelivery(d: Decision, now: number): boolean {
     return this.transaction(() => {
       this.expire(now);
@@ -102,7 +103,6 @@ export class Store {
     this.expire(now);
     return this.db.prepare("SELECT r.id FROM outbox o JOIN requests r ON r.id=o.request_id WHERE o.status='pending' AND r.state='pending'").all().map(row => row.id as string);
   }
-  markNotified(id: string) { this.db.prepare("UPDATE outbox SET status='sent' WHERE request_id=?").run(id); }
   claimNotification(now: number): {id:string;lease:string;attempts:number} | undefined {
     return this.transaction(()=>{
       this.expire(now);

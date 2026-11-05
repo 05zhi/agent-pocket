@@ -1,0 +1,12 @@
+{
+  "provider": "codex",
+  "scenario": "question",
+  "requestSeen": true,
+  "responseSent": true,
+  "resumed": true,
+  "completed": true,
+  "passed": true,
+  "duplicateRejected": true,
+  "outcome": "completed",
+  "coreState": "outcome_unknown"
+}

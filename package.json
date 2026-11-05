@@ -10,6 +10,7 @@
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "doctor": "node dist/apps/cli/index.js doctor",
+    "simulate": "node dist/apps/cli/index.js simulate",
     "probe:codex": "node scripts/probe-codex.mjs",
     "test": "node --test tests/contracts/*.test.mjs"
   },

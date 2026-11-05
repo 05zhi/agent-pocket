@@ -1,7 +1,10 @@
 import { spawnSync } from 'node:child_process';
+import { simulate } from '../../packages/core/simulator.js';
 
-if (process.argv[2] !== 'doctor') {
-  console.error('Usage: npm run doctor (development diagnostics only)');
+if (process.argv[2] === 'simulate') {
+  console.log(JSON.stringify(simulate(),null,2));
+} else if (process.argv[2] !== 'doctor') {
+  console.error('Usage: agent-pocket doctor | simulate (development tools only)');
   process.exitCode = 1;
 } else {
   const versions = Object.fromEntries(['codex', 'claude'].map(tool => {

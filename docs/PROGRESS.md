@@ -39,3 +39,5 @@
 ## Codex 取消驗證（2026-11-05）
 真實核准等待及問題等待皆收到 turn/interrupt acknowledgement 與 turn/completed interrupted，未送出任何決定。兩項通過。未測直接送舊回覆給 Codex 的行為；產品將由核心拒收舊回覆。
 
+## M1 首個核准核心（2026-11-05）
+實作 TypeScript contract、SQLite 請求與原子 outbox、身份及版本檢查、一次性決定、取消／過期／重啟失效與未知結果。CLI simulate 可重跑合成流程。8 項測試通過，包含 10 session／100 request 與雙 connection 競爭。詳見 M1-CORE.md。M1 尚未完成：問題輸入、完整 outbox worker／重試、audit 與 live adapter 串接待做。

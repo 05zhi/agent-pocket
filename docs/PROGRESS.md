@@ -76,3 +76,6 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 
 ## Codex → Telegram 端到端執行器
 新增 --telegram 模式，沿用配對資料庫與單程序 lock，驗證 bot 身份後恢復舊請求，真實 Codex 請求經 bridge／SQLite outbox／Telegram channel。通知 API 接受後保持 Codex 等待，需本機 FINISH 才拒絕合成命令或回答合成問題。24 項測試通過；本部分先記錄程式，實機結果另記。
+
+## Telegram 手機操作初版
+新增原內容 hash 檢查、完整 JSON 預覽、不透明 callback token、身份／chat／message 綁定、單次核准／拒絕、選項及指定訊息文字回覆。長內容不顯示核准鍵，取消／過期後拒收。收到決定與原工具確認分開顯示，移除舊按鈕。--remote 執行器加入單一 long polling 與持久化 offset；真實驗證限固定合成命令，不擴大權限。27 項測試通過，手機實測結果另記。

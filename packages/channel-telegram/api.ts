@@ -7,7 +7,7 @@ export class TelegramApi {
   constructor(private token:string,private fetcher:typeof fetch=fetch) {
     if(!/^\d+:[A-Za-z0-9_-]{20,}$/.test(token))throw Error('Invalid bot token format');
   }
-  async call(method:'getMe'|'getWebhookInfo'|'getUpdates'|'sendMessage',params:object={},signal?:AbortSignal):Promise<any> {
+  async call(method:'getMe'|'getWebhookInfo'|'getUpdates'|'sendMessage'|'answerCallbackQuery'|'editMessageText',params:object={},signal?:AbortSignal):Promise<any> {
     let response:Response;
     try {response=await this.fetcher(`https://api.telegram.org/bot${this.token}/${method}`,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(params),signal:signal?AbortSignal.any([signal,AbortSignal.timeout(25000)]):AbortSignal.timeout(25000),redirect:'error'});}
     catch {throw new TelegramError(0);}

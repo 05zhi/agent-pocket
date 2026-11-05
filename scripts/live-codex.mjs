@@ -10,13 +10,15 @@ import { Store } from '../dist/packages/storage/store.js';
 import { CodexBridge } from '../dist/packages/adapter-codex/bridge.js';
 import {TelegramApi,TelegramChannel} from '../dist/packages/channel-telegram/api.js';
 import {notifyOnce} from '../dist/packages/core/notifications.js';
+import {TelegramInbox} from '../dist/packages/channel-telegram/inbox.js';
 
 const scenario = process.argv[2];
 if (!['approval', 'approval-allow', 'question', 'cancel-approval', 'cancel-question'].includes(scenario)) throw new Error('Unknown scenario');
 const cancelling = scenario.startsWith('cancel-');
 const question = scenario.endsWith('question');
-const phone=process.argv.includes('--telegram');
-if(phone&&!['approval','question'].includes(scenario))throw Error('Telegram test supports approval (deny only) or question');
+const remote=process.argv.includes('--remote');
+const phone=process.argv.includes('--telegram')||remote;
+if(phone&&!['approval','approval-allow','question'].includes(scenario))throw Error('Unsupported Telegram scenario');
 let interruption;
 if (spawnSync('codex', ['--version'], { encoding: 'utf8' }).stdout.trim() !== 'codex-cli 0.166.0-alpha.5.1') throw new Error('Version mismatch');
 const cwd = resolve('.cache/live-codex');
@@ -29,6 +31,7 @@ if(phone){
     const bot=await api.call('getMe');
     const saved=JSON.parse(readFileSync('.cache/telegram-cursor.json','utf8'));
     if(bot.id!==saved.botId)throw Error('Bot identity changed');
+    if(remote&&(await api.call('getWebhookInfo')).url)throw Error('Dedicated polling bot required');
   } catch {
     if(lock!==undefined){closeSync(lock);unlinkSync('.cache/telegram.lock');}
     console.error('Telegram preflight failed: check pairing, token and local lock.');process.exit(1);
@@ -52,7 +55,33 @@ const bridge = new CodexBridge(store,send);
 let boundRequest;
 const boundDecision = action => ({...boundRequest,actorId:store.pairing()?.actor,chatId:store.pairing()?.chat,action});
 let stopped=false;
+let remoteTask,inbox;const pollingAbort=new AbortController();
+if(remote)inbox=new TelegramInbox(api,store,bridge,Date.now,(action,duplicateBlocked)=>{
+ evidence.responseSent=true;evidence.duplicateRejected=duplicateBlocked;evidence.decision=action;
+});
 async function phoneRequest(request,params){
+  if(remote){
+    if(!question){
+      const shell=resolve(homedir(),'.cache/codex-runtimes/codex-primary-runtime/dependencies/native/powershell/pwsh.exe');
+      if(params.command.replaceAll('\\\\','\\')!==`"${shell}" -Command "Write-Output 'AGENT_POCKET_APPROVAL_OK'"`)throw Error('Unexpected synthetic command');
+    }
+    await inbox.present(request,params);evidence.telegramApiAccepted=true;
+    console.log('REMOTE_REQUEST_READY: use Telegram buttons or reply to the question message.');
+    const file='.cache/telegram-cursor.json';const cursor=JSON.parse(readFileSync(file,'utf8'));
+    while(!stopped){
+      let updates;
+      try{updates=await api.call('getUpdates',{offset:cursor.offset,timeout:10,allowed_updates:['message','callback_query']},pollingAbort.signal);}
+      catch{if(stopped)return;await delay(1000);continue;}
+      for(const update of updates){
+        if(stopped)return;
+        if(!Number.isSafeInteger(update.update_id)||update.update_id<cursor.offset)continue;
+        await inbox.handle(update);
+        cursor.offset=update.update_id+1;writeFileSync(file,JSON.stringify(cursor));
+      }
+      await inbox.refresh();
+    }
+    return;
+  }
   const channel=new TelegramChannel(api,store);
   const startedAt=Date.now();
   while(!stopped&&store.state(request.id)==='pending'){
@@ -92,7 +121,8 @@ createInterface({ input: child.stdout }).on('line', line => {
     const p = msg.params;
     if(phone&&boundRequest&&msg.method===(question?'item/tool/requestUserInput':'item/commandExecution/requestApproval')){
       evidence.requestSeen=true;
-      void phoneRequest(boundRequest,p).catch(()=>finish('phone_flow_failed'));
+      if(remoteTask)return;
+      remoteTask=phoneRequest(boundRequest,p).catch(()=>finish('phone_flow_failed'));
       return;
     }
     if (cancelling && msg.method === (question ? 'item/tool/requestUserInput' : 'item/commandExecution/requestApproval')) {
@@ -141,17 +171,19 @@ try {
   if (interruption) await interruption;
   evidence.coreState = boundRequest ? store.state(boundRequest.id) : 'no_request';
   if(cancelling) evidence.staleReplyRejected = !bridge.respond(boundDecision(question?'answer':'allow_once'),{});
-  evidence.passed = evidence.requestSeen && evidence.responseSent && evidence.resumed && evidence.completed && (scenario !== 'approval-allow' || (evidence.decision === 'accept' && evidence.commandExecuted === true));
+  evidence.passed = evidence.requestSeen && evidence.responseSent && evidence.resumed && evidence.completed && (scenario !== 'approval-allow' || (['accept','allow_once'].includes(evidence.decision) && evidence.commandExecuted === true));
   if (cancelling) evidence.passed = evidence.requestSeen && evidence.interruptAcknowledged === true && evidence.outcome === 'interrupted' && !evidence.responseSent && evidence.staleReplyRejected && evidence.coreState==='cancelled';
   else evidence.passed = evidence.passed && evidence.duplicateRejected && evidence.coreState==='resolved';
   if(phone)evidence.passed=evidence.passed&&evidence.telegramApiAccepted===true;
 } catch (error) { evidence.outcome = error.message; }
 finally {
   clearTimeout(timeout); child.kill();
-  stopped=true;prompt?.close();
+  stopped=true;pollingAbort.abort();prompt?.close();
+  if(remoteTask)await remoteTask;
+  if(inbox)await inbox.refresh();
   bridge.disconnect();store.close();
   if(lock!==undefined){closeSync(lock);unlinkSync('.cache/telegram.lock');}
-  writeFileSync(`.cache/codex-${phone?'telegram':'core'}-${scenario}-evidence.json`, JSON.stringify(evidence, null, 2) + '\n');
+  writeFileSync(`.cache/codex-${remote?'remote':phone?'telegram':'core'}-${scenario}-evidence.json`, JSON.stringify(evidence, null, 2) + '\n');
   console.log(JSON.stringify(evidence, null, 2));
   process.exitCode = evidence.passed ? 0 : 1;
 }

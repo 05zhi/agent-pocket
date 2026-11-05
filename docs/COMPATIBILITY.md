@@ -8,7 +8,7 @@
 | Codex | 0.166.0-alpha.5.1 | 真實拒絕、單次允許、問題回覆與等待中止通過 | alpha 版；上游舊回覆行為／手機未測 |
 | Claude CLI | 未安裝於 PATH | 環境盤點 | 登入與模型權限未確認 |
 | Claude Agent SDK | 曾測試 0.3.318；已移除目前依賴 | 真實呼叫曾回 Not logged in | 使用者決定延後，不需登入，不列目前驗收 |
-| Telegram / iPhone | 2026-11-05 | 真實私訊配對成功、API 接受、使用者確認手機看見測試通知 | 1 次，未量測延遲；非 Codex 到手機端到端展示 |
+| Telegram / iPhone | 2026-11-05 | 配對及測試通知；另完成 Codex 核准／問題兩筆真實端到端通知，使用者確認可見 | 本機回答；未量測手機顯示延遲，非手機遠端核准 |
 | Telegram / Android | 未測 | 無 | 不宣稱實測支援 |
 
 官方文件：[Codex app-server](https://learn.chatgpt.com/docs/app-server)、[Claude 使用者輸入](https://code.claude.com/docs/en/agent-sdk/user-input)。文件能力不能替代實機驗收。

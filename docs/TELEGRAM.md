@@ -23,3 +23,5 @@
 2026-11-05 實測：專用 bot 的一次性私訊配對及本機綁定成功，Telegram API 接受測試訊息，使用者確認 iPhone 已看見。僅 1 次，未量測延遲；Android、真實錯誤帳號與解除綁定情境尚未測。配對維持啟用供後續工作使用。見 docs/evidence/telegram-iphone-pairing.json。
 
 端到端測試：先 npm run build，再 npm run test:live:telegram（核准測試只回拒絕）；問題測試執行 node --env-file=.env scripts/live-codex.mjs question --telegram。通知發出後 Codex 保持等待，查看手機再於終端輸入 FINISH。這是本機回答，不是手機核准。需專用 bot，執行期間不可同時跑其他 Telegram 程序。摘要含單次事件至 API 接受耗時，不代表手機顯示延遲或 p95。
+
+實測結果：2026-11-05 核准與問題兩條流程均通過；使用者逐筆確認 iPhone 收到新通知，本機處理後 Codex 繼續且核心 resolved。notificationAttempts 都是 1；API 接受耗時為 897 ms／851 ms，僅限這兩筆。證據不保存 bot 名稱、token、user/chat ID、原始對話或配對碼。

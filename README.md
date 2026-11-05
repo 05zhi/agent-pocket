@@ -31,3 +31,5 @@ probe 固定本機 Codex 0.166.0-alpha.5.1；只產生協定，不呼叫模型�
 M1 已有 SQLite 原子入列、身份與請求綁定、一次性決定、問題驗證、取消／過期、重啟失效、通知重試與稽核。Codex bridge 將命令核准及阻塞問題接入核心；產品 daemon、手機通道與其他核准類型仍待後續里程碑。`npm run simulate` 展示合成流程，不啟動模型或發送通知。詳見 [M1 核心](docs/M1-CORE.md)。
 
 M2 已加入 Telegram 一次性配對碼、本機確認、測試通知與 outbox channel，使用方式見 [Telegram 設定](docs/TELEGRAM.md)。真實配對成功，使用者已確認 iPhone 看見測試通知；Android、Codex 到手機端到端流程與手機核准／回答仍未驗證或實作。
+
+2026-11-05：Codex 真實核准及問題等待 → SQLite outbox → Telegram → iPhone 皆已驗證，使用者確認兩筆通知可見；本機拒絕／回答後原回合完成，核心 resolved。可用 `npm run test:live:telegram` 重跑核准通知測試。這仍是手機通知、本機處理，沒有手機核准／回答按鈕，也不是通用常駐 daemon。

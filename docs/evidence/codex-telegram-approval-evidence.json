@@ -1,0 +1,19 @@
+{
+  "provider": "codex",
+  "scenario": "approval",
+  "requestSeen": true,
+  "responseSent": true,
+  "resumed": true,
+  "completed": true,
+  "passed": true,
+  "telegramApiAccepted": true,
+  "eventToApiAcceptedMs": 897,
+  "notificationAttempts": 1,
+  "duplicateRejected": true,
+  "outcome": "completed",
+  "coreState": "resolved",
+  "phonePlatform": "iPhone",
+  "userConfirmedVisible": true,
+  "date": "2026-11-05",
+  "responseLocation": "local"
+}

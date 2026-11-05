@@ -1,5 +1,13 @@
 # 開發進度
 
+## Codex → Telegram → iPhone 真實端到端通過（2026-11-05）
+
+完成核准等待與問題等待兩條真實流程：app-server request → CodexBridge → SQLite 原子 outbox → TelegramChannel → Telegram API 接受 → 使用者確認 iPhone 新通知 → 本機拒絕／回答 → Codex 原回合完成，核心 resolved。重複決定被阻擋；兩筆 notificationAttempts=1。
+
+本機開始處理該請求至 API 接受：核准 897 ms、問題 851 ms。只有各一筆樣本，不是 p95，沒有量測手機顯示時間。24 項合約／整合測試通過。去識別證據：docs/evidence/codex-telegram-approval-evidence.json 與 codex-telegram-question-evidence.json。
+
+配對保持啟用，測試工作已結束，沒有背景 daemon 留在執行。尚未包含手機核准／回答、Android、真實陌生帳號攻擊／撤銷／網路故障驗收，以及一般使用者任意任務的常駐整合。
+
 ## 最新驗證（2026-11-05）
 
 Telegram token 已由使用者完成本機設定，取代先前格式錯誤紀錄。真實 private 配對成功，使用者確認親自送出一次性碼後完成本機綁定。API 接受測試通知，使用者確認 iPhone 實際看見。去識別證據存於 docs/evidence/telegram-iphone-pairing.json。

@@ -41,7 +41,7 @@ export class Store {
     if (!actor || !chat) throw new Error('Invalid pairing');
     this.db.prepare('INSERT OR REPLACE INTO pairing VALUES(1,?,?)').run(actor, chat);
   }
-  revokePairing() { this.db.exec('DELETE FROM pairing'); }
+  revokePairing() { this.transaction(()=>{this.db.exec("DELETE FROM pairing; UPDATE requests SET state=CASE WHEN state='delivering' THEN 'outcome_unknown' ELSE 'cancelled' END WHERE state IN ('pending','decision_received','delivering');");}); }
   pairing(): {actor:string;chat:string}|undefined { return this.db.prepare('SELECT actor,chat FROM pairing WHERE singleton=1').get() as {actor:string;chat:string}|undefined; }
   startSession(id: string, generation: string) {
     if (!id || !generation) throw new Error('Invalid session');
@@ -62,7 +62,7 @@ export class Store {
     });
   }
   decide(d: Decision, now: number): boolean {
-    if (!['allow_once','deny','answer'].includes(d.action)) return false;
+    if (!['allow_once','deny','cancel','answer'].includes(d.action)) return false;
     const kind = this.db.prepare('SELECT kind FROM requests WHERE id=?').get(d.id)?.kind;
     if ((d.action === 'answer') !== (kind === 'input')) return false;
     return this.transaction(() => {

@@ -5,7 +5,7 @@ export interface ApprovalRequest {
   version: number; payloadHash: string; expiresAt: number;
 }
 export interface Decision extends ApprovalRequest {
-  actorId: string; chatId: string; action: 'allow_once' | 'deny' | 'answer';
+  actorId: string; chatId: string; action: 'allow_once' | 'deny' | 'cancel' | 'answer';
 }
 export interface AdapterCapabilities {
   version: string; supportsApproval: boolean; supportsQuestions: boolean;

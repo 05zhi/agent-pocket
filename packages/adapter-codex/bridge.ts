@@ -3,7 +3,7 @@ import {Store} from '../storage/store.js';
 import type {ApprovalRequest,Decision} from '../core/contract.js';
 import {validateAnswers,type Answers,type Question} from '../core/questions.js';
 type Wire = {id?:string|number;method?:string;params?:any};
-type Live = {request:ApprovalRequest;wireId:string|number;thread:string;turn:string;item:string;questions?:Question[];answerCleared?:boolean};
+type Live = {request:ApprovalRequest;wireId:string|number;thread:string;turn:string;item:string;questions?:Question[];answerCleared?:boolean;decisions?:string[];cancelSent?:boolean};
 // Transport is the pinned app-server stdio connection, never a public HTTP endpoint.
 export class CodexBridge {
   readonly capabilities={version:'0.166.0-alpha.5.1',supportsApproval:true,supportsQuestions:true,supportsCancel:true,supportsReconcile:false};
@@ -31,9 +31,12 @@ export class CodexBridge {
       const turnKey=JSON.stringify([p.threadId,p.turnId]);let session=this.sessions.get(turnKey);
       if(!session){session=randomUUID();this.store.startSession(session,this.generation);this.sessions.set(turnKey,session);}
       const request:ApprovalRequest={id:randomUUID(),sessionId:session,generation:this.generation,nativeRequestId:key,kind:input?'input':'approval',version:1,payloadHash:hash,expiresAt:this.now()+15*60000};
-      this.store.enqueue(request,this.now());this.live.set(key,{request,wireId:message.id,thread:p.threadId,turn:p.turnId,item:p.itemId,questions});return {...request};
+      this.store.enqueue(request,this.now());this.live.set(key,{request,wireId:message.id,thread:p.threadId,turn:p.turnId,item:p.itemId,questions,decisions:p.availableDecisions??['accept','decline','cancel']});return {...request};
     }
     if(!p)return;
+    if(message.method==='turn/completed'&&p.turn?.status==='interrupted')for(const entry of this.live.values()){
+      if(entry.thread===p.threadId&&entry.turn===p.turn.id&&entry.cancelSent)this.store.finishDelivery(entry.request.id,true);
+    }
     for(const [key,entry] of this.live) {
       if(p.threadId!==entry.thread)continue;
       if(message.method==='serverRequest/resolved' && JSON.stringify(p.requestId)===key && this.store.state(entry.request.id)==='pending')this.store.cancelRequest(entry.request.id);
@@ -45,7 +48,7 @@ export class CodexBridge {
         // Completion proves the bound tool was released, not that its command succeeded.
         this.store.finishDelivery(entry.request.id,true);
       }
-      if(message.method==='turn/completed' && p.turn?.id===entry.turn){this.store.cancelSession(entry.request.sessionId);this.live.delete(key);}
+      if(message.method==='turn/completed' && p.turn?.id===entry.turn){if(entry.cancelSent&&p.turn.status==='interrupted')this.store.finishDelivery(entry.request.id,true);this.store.cancelSession(entry.request.sessionId);this.live.delete(key);}
     }
   }
   respond(d:Decision,answers?:Answers):boolean {
@@ -55,8 +58,9 @@ export class CodexBridge {
       if(d.action!=='answer'||!answers)return false;
       let validated:Answers;try{validated=validateAnswers(entry.questions,answers);}catch{return false;}
       result={answers:Object.fromEntries(Object.entries(validated).map(([id,values])=>[id,{answers:values}]))};
-    } else {if(!['allow_once','deny'].includes(d.action))return false;result={decision:d.action==='allow_once'?'accept':'decline'};}
+    } else {if(!['allow_once','deny','cancel'].includes(d.action))return false;const decision=d.action==='allow_once'?'accept':d.action==='deny'?'decline':'cancel';if(!entry.decisions?.includes(decision))return false;result={decision};}
     if(!this.store.decide(d,this.now())||!this.store.beginDelivery(d,this.now()))return false;
+    entry.cancelSent=d.action==='cancel';
     try{this.send({id:entry.wireId,result});}catch{this.store.finishDelivery(d.id,false);return false;}
     return true;
   }

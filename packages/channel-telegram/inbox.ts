@@ -9,7 +9,7 @@ type Choice={entry:Entry;action:Decision['action'];answers?:Answers};
 export class TelegramInbox {
  private entries:Entry[]=[];private choices=new Map<string,Choice>();private seen=new Set<number>();
  accepted=0;lastAction?:Decision['action'];
- constructor(private api:TelegramApi,private store:Store,private bridge:CodexBridge,private now=Date.now,private onAccepted:(action:Decision['action'],duplicateBlocked:boolean)=>void=()=>{}){}
+ constructor(private api:TelegramApi,private store:Store,private bridge:CodexBridge,private now=Date.now,private onAccepted:(action:Decision['action'],answers?:Answers)=>void=()=>{}){}
  async present(request:ApprovalRequest,params:any){
   const method=request.kind==='input'?'item/tool/requestUserInput':'item/commandExecution/requestApproval';
   if(createHash('sha256').update(JSON.stringify({method,params})).digest('hex')!==request.payloadHash)throw Error('Display content does not match original request');
@@ -27,6 +27,7 @@ export class TelegramInbox {
     const available=params.availableDecisions;
     if(!available||available.includes('accept'))add('允許一次','allow_once');
     if(!available||available.includes('decline'))add('拒絕','deny');
+    if(!available||available.includes('cancel'))add('取消此回合','cancel');
   }
   const result=await this.api.call('sendMessage',{chat_id:pair.chat,text,protect_content:true,reply_markup:{inline_keyboard:buttons}});
   if(!Number.isSafeInteger(result.message_id))throw Error('Missing Telegram message id');
@@ -52,7 +53,7 @@ export class TelegramInbox {
     if(choice){const e=choice.entry;
       if(e.interactive&&e.actor===pair.actor&&e.chat===pair.chat&&this.now()<e.request.expiresAt&&this.store.state(e.request.id)==='pending'){
         accepted=this.bridge.respond({...e.request,actorId:pair.actor,chatId:pair.chat,action:choice.action},choice.answers);
-        if(accepted){this.accepted++;this.lastAction=choice.action;this.onAccepted(choice.action,!this.bridge.respond({...e.request,actorId:pair.actor,chatId:pair.chat,action:choice.action},choice.answers));}
+        if(accepted){this.accepted++;this.lastAction=choice.action;this.onAccepted(choice.action,choice.answers);}
       }
     }
   }

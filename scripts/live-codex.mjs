@@ -56,8 +56,8 @@ let boundRequest;
 const boundDecision = action => ({...boundRequest,actorId:store.pairing()?.actor,chatId:store.pairing()?.chat,action});
 let stopped=false;
 let remoteTask,inbox;const pollingAbort=new AbortController();
-if(remote)inbox=new TelegramInbox(api,store,bridge,Date.now,(action,duplicateBlocked)=>{
- evidence.responseSent=true;evidence.duplicateRejected=duplicateBlocked;evidence.decision=action;
+if(remote)inbox=new TelegramInbox(api,store,bridge,Date.now,(action,answers)=>{
+ evidence.responseSent=true;evidence.duplicateRejected=!bridge.respond(boundDecision(action),answers);evidence.decision=action;
 });
 async function phoneRequest(request,params){
   if(remote){
@@ -66,6 +66,7 @@ async function phoneRequest(request,params){
       if(params.command.replaceAll('\\\\','\\')!==`"${shell}" -Command "Write-Output 'AGENT_POCKET_APPROVAL_OK'"`)throw Error('Unexpected synthetic command');
     }
     await inbox.present(request,params);evidence.telegramApiAccepted=true;
+    if(!question)evidence.availableDecisions=params.availableDecisions??['accept','decline','cancel'];
     console.log('REMOTE_REQUEST_READY: use Telegram buttons or reply to the question message.');
     const file='.cache/telegram-cursor.json';const cursor=JSON.parse(readFileSync(file,'utf8'));
     while(!stopped){
@@ -175,13 +176,15 @@ try {
   if (cancelling) evidence.passed = evidence.requestSeen && evidence.interruptAcknowledged === true && evidence.outcome === 'interrupted' && !evidence.responseSent && evidence.staleReplyRejected && evidence.coreState==='cancelled';
   else evidence.passed = evidence.passed && evidence.duplicateRejected && evidence.coreState==='resolved';
   if(phone)evidence.passed=evidence.passed&&evidence.telegramApiAccepted===true;
+  if(remote&&evidence.decision==='cancel')evidence.passed=evidence.requestSeen&&evidence.responseSent&&evidence.outcome==='interrupted'&&evidence.coreState==='resolved'&&evidence.telegramApiAccepted===true;
 } catch (error) { evidence.outcome = error.message; }
 finally {
   clearTimeout(timeout); child.kill();
   stopped=true;pollingAbort.abort();prompt?.close();
   if(remoteTask)await remoteTask;
+  bridge.disconnect();
   if(inbox)await inbox.refresh();
-  bridge.disconnect();store.close();
+  store.close();
   if(lock!==undefined){closeSync(lock);unlinkSync('.cache/telegram.lock');}
   writeFileSync(`.cache/codex-${remote?'remote':phone?'telegram':'core'}-${scenario}-evidence.json`, JSON.stringify(evidence, null, 2) + '\n');
   console.log(JSON.stringify(evidence, null, 2));

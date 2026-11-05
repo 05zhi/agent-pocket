@@ -79,3 +79,6 @@ SQLite trigger 在相同 transaction 記錄請求／通知狀態、配對與撤�
 
 ## Telegram 手機操作初版
 新增原內容 hash 檢查、完整 JSON 預覽、不透明 callback token、身份／chat／message 綁定、單次核准／拒絕、選項及指定訊息文字回覆。長內容不顯示核准鍵，取消／過期後拒收。收到決定與原工具確認分開顯示，移除舊按鈕。--remote 執行器加入單一 long polling 與持久化 offset；真實驗證限固定合成命令，不擴大權限。27 項測試通過，手機實測結果另記。
+
+## 手機取消選項修正
+使用者回報只有允許按鈕；依 availableDecisions 新增取消此回合，bridge 拒收未提供的 decline。取消以 interrupted 確認。修正同回合多請求失效順序與解除配對後再配對不能復活舊按鈕；重複測試移到測試執行器。29 項測試通過。
